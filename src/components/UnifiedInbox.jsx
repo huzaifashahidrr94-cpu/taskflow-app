@@ -67,34 +67,25 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
             const { data, error } = await supabase
                 .from('activity_feed')
                 .select('*')
+                .eq('workspace_id', workspaceId) // <-- Add this workspace filter
                 .order('created_at', { ascending: false });
 
             if (!error && data && data.length > 0) {
                 setActivities(data);
                 setSelectedActivity(data[0]);
             } else {
+                // Default fallback messages for empty workspaces
                 const defaultActivities = [
                     {
                         id: 'act-1',
                         type: 'mention',
                         category: 'Chat Mention',
-                        title: `Alex mentioned ${userName} in Team Chat`,
-                        snippet: `@${userName} Could you review the updated API endpoints for the client portal auth flow?`,
-                        sender: 'Alex Johnson',
+                        title: `Welcome to your workspace, ${userName}!`,
+                        snippet: `Your workspace is configured and ready to go.`,
+                        sender: 'TaskFlow System',
                         read: false,
                         archived: false,
-                        created_at: '10:15 AM'
-                    },
-                    {
-                        id: 'act-2',
-                        type: 'deal',
-                        category: 'Sales Pipeline',
-                        title: 'Enterprise Software License moved to Proposal Sent',
-                        snippet: 'Acme Corp deal updated to $15,000 ARR. Requires contract signature.',
-                        sender: 'Sales System',
-                        read: true,
-                        archived: false,
-                        created_at: 'Yesterday'
+                        created_at: 'Just now'
                     }
                 ];
                 setActivities(defaultActivities);
@@ -108,7 +99,12 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
     };
 
     useEffect(() => {
-        if (workspaceId) fetchActivities();
+        if (!workspaceId) {
+            setLoading(false);
+            return;
+        }
+
+        fetchActivities();
 
         const channel = supabase
             .channel('activity_feed_realtime')
@@ -208,7 +204,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
         }
     };
 
-    // --- SELECTION & COMMAND STATE TRACKING ---
     const updateActiveFormats = () => {
         try {
             setActiveFormats({
@@ -220,7 +215,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                 ol: document.queryCommandState('insertOrderedList'),
             });
         } catch (e) {
-            // Ignore document state query errors on empty selection
+            // Ignore query state errors on empty selection
         }
     };
 
@@ -263,7 +258,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
         }
     };
 
-    // Attachment Handlers
     const handleFileUpload = (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -283,7 +277,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
         setAttachments((prev) => prev.filter((a) => a.id !== id));
     };
 
-    // Voice Note Recorder Simulation
     const toggleRecording = () => {
         if (isRecording) {
             clearInterval(timerRef.current);
@@ -390,15 +383,14 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                         <CheckCheck className="w-4 h-4 text-indigo-600" /> Mark All Read
                     </button>
 
-                    {/* Filter Pills */}
                     <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 text-xs font-bold">
                         {['all', 'mentions', 'deals', 'tickets', 'archived'].map((f) => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 className={`px-3.5 py-1.5 rounded-xl capitalize transition cursor-pointer ${filter === f
-                                        ? 'bg-white text-slate-900 shadow-2xs'
-                                        : 'text-slate-500 hover:text-slate-900'
+                                    ? 'bg-white text-slate-900 shadow-2xs'
+                                    : 'text-slate-500 hover:text-slate-900'
                                     }`}
                             >
                                 {f}
@@ -408,9 +400,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                 </div>
             </div>
 
-            {/* Main Split Workbench */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left 5 Cols: Notifications Feed */}
                 <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-3xl p-4 shadow-xs space-y-2.5 max-h-[600px] overflow-y-auto">
                     {filteredActivities.length === 0 ? (
                         <div className="p-8 text-center text-slate-400 my-auto">
@@ -430,10 +420,10 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                         markAsRead(act.id);
                                     }}
                                     className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${isSelected
-                                            ? 'bg-indigo-50/90 border-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
-                                            : isUnread
-                                                ? 'bg-slate-900 border-slate-800 text-white shadow-md hover:bg-slate-800'
-                                                : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-700'
+                                        ? 'bg-indigo-50/90 border-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
+                                        : isUnread
+                                            ? 'bg-slate-900 border-slate-800 text-white shadow-md hover:bg-slate-800'
+                                            : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-700'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -471,7 +461,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                     )}
                 </div>
 
-                {/* Right 7 Cols: Selected Item Details & Visual Rich Reply Composer */}
                 <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs flex flex-col justify-between min-h-[480px]">
                     {selectedActivity ? (
                         <div className="space-y-6">
@@ -516,14 +505,12 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                 </p>
                             </div>
 
-                            {/* RICH CHAT COMPOSER WITH ACTIVE BUTTON HIGHLIGHTING */}
                             <form onSubmit={handleQuickReply} className="space-y-2 pt-2">
                                 <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
                                     Quick Reply / Note
                                 </label>
 
                                 <div className="border border-slate-200/90 rounded-2xl overflow-hidden bg-slate-50/50 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
-                                    {/* Top Rich Formatting Toolbar */}
                                     {showFormatting && (
                                         <div className="px-3 py-1.5 bg-slate-100/70 border-b border-slate-200/70 flex items-center justify-between text-slate-500">
                                             <div className="flex items-center gap-1">
@@ -621,7 +608,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                         </div>
                                     )}
 
-                                    {/* VISUAL EDITABLE AREA WITH OVERRIDDEN TAILWIND LIST STYLES */}
                                     <div
                                         ref={editorRef}
                                         contentEditable
@@ -632,7 +618,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                         data-placeholder={`Reply directly to ${selectedActivity.sender || 'sender'}...`}
                                     />
 
-                                    {/* Pending Attachments Bar */}
                                     {attachments.length > 0 && (
                                         <div className="px-3 py-1.5 bg-slate-100/60 border-t border-slate-200/60 flex flex-wrap gap-1.5">
                                             {attachments.map((file) => (
@@ -660,7 +645,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                         </div>
                                     )}
 
-                                    {/* Bottom Action Bar */}
                                     <div className="px-3 py-2 bg-slate-100/40 border-t border-slate-200/60 flex items-center justify-between">
                                         <div className="flex items-center gap-1">
                                             <input
@@ -721,8 +705,8 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 type="button"
                                                 onClick={toggleRecording}
                                                 className={`p-1.5 rounded-lg cursor-pointer transition ${isRecording
-                                                        ? 'bg-rose-500 text-white animate-pulse'
-                                                        : 'text-rose-500 hover:bg-rose-50'
+                                                    ? 'bg-rose-500 text-white animate-pulse'
+                                                    : 'text-rose-500 hover:bg-rose-50'
                                                     }`}
                                                 title={isRecording ? 'Stop Recording' : 'Record Voice Note'}
                                             >
@@ -755,7 +739,6 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                 </div>
             </div>
 
-            {/* Toast */}
             {toast.show && (
                 <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />

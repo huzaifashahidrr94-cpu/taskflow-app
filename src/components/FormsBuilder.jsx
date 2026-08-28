@@ -36,7 +36,11 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
     const [simMessage, setSimMessage] = useState('');
 
     useEffect(() => {
-        if (workspaceId) fetchForms();
+        if (workspaceId) {
+            fetchForms();
+        } else {
+            setLoading(false);
+        }
     }, [workspaceId]);
 
     const triggerToast = (msg) => {
@@ -132,7 +136,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
         e.preventDefault();
         if (!simName.trim() || !simEmail.trim()) return;
 
-        // Increment submission count
         setForms((prev) =>
             prev.map((f) =>
                 f.id === previewForm.id ? { ...f, submissions_count: f.submissions_count + 1 } : f
@@ -164,7 +167,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -183,7 +185,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 </button>
             </div>
 
-            {/* Form Roster Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {forms.map((f) => (
                     <div
@@ -238,7 +239,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 ))}
             </div>
 
-            {/* CREATE FORM MODAL */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl relative font-sans">
@@ -308,7 +308,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 </div>
             )}
 
-            {/* FORM PREVIEW / SIMULATION MODAL */}
             {previewForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-8 shadow-2xl relative font-sans space-y-6">
@@ -374,7 +373,6 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 </div>
             )}
 
-            {/* Toast Notification */}
             {toast.show && (
                 <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 transition-all duration-300">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />

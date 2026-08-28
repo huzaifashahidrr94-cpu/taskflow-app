@@ -28,7 +28,11 @@ export default function OKRsGoals({ workspaceId, currentUser }) {
     const [kr2, setKr2] = useState('');
 
     useEffect(() => {
-        if (workspaceId) fetchOKRs();
+        if (workspaceId) {
+            fetchOKRs();
+        } else {
+            setLoading(false);
+        }
     }, [workspaceId]);
 
     const triggerToast = (msg) => {
@@ -221,8 +225,8 @@ export default function OKRsGoals({ workspaceId, currentUser }) {
                         key={dept}
                         onClick={() => setSelectedDepartment(dept)}
                         className={`px-3.5 py-1.5 rounded-xl transition cursor-pointer shrink-0 ${selectedDepartment === dept
-                                ? 'bg-slate-900 text-white shadow-2xs'
-                                : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50'
+                            ? 'bg-slate-900 text-white shadow-2xs'
+                            : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         {dept}
