@@ -40,7 +40,8 @@ import {
     Type,
     Video,
     Terminal,
-    Eraser
+    Eraser,
+    BellRing
 } from 'lucide-react';
 
 const EMOJI_LIST = [
@@ -67,6 +68,9 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const [chatType, setChatType] = useState('channel');
     const [activeChannel, setActiveChannel] = useState('general');
     const [activeDmPartner, setActiveDmPartner] = useState(null);
+
+    // Desktop Notification Permission State
+    const [notifPermission, setNotifPermission] = useState('default');
 
     // Formatting Toolbar Toggle & Active States
     const [showFormatBar, setShowFormatBar] = useState(true);
@@ -139,6 +143,42 @@ export default function TeamChat({ workspaceId, currentUser }) {
         setTimeout(() => setToast({ show: false, message: '' }), 3500);
     };
 
+    // Request OS Desktop Notifications on Mount
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotifPermission(Notification.permission);
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then((perm) => {
+                    setNotifPermission(perm);
+                });
+            }
+        }
+    }, []);
+
+    const triggerDesktopNotification = (sender, content) => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                let cleanBody = content || '';
+                if (cleanBody.startsWith('[VOICE_NOTE]:')) {
+                    cleanBody = '🎙️ Sent a voice note';
+                } else if (cleanBody.startsWith('[FILE_ATTACHMENT]:')) {
+                    cleanBody = '📎 Sent an attachment';
+                } else {
+                    const doc = new DOMParser().parseFromString(cleanBody, 'text/html');
+                    cleanBody = doc.body.textContent || cleanBody;
+                }
+
+                new Notification(`New message from ${sender}`, {
+                    body: cleanBody.substring(0, 100),
+                    icon: '/favicon.ico',
+                    silent: false
+                });
+            } catch (err) {
+                console.warn('Desktop OS notification error:', err);
+            }
+        }
+    };
+
     useEffect(() => {
         if (!workspaceId) return;
         fetchTeamMembers();
@@ -152,9 +192,17 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
         const subscription = supabase
             .channel(`chat-room-${workspaceId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
                 fetchMessages();
                 if (activeThreadMsg) fetchThreadReplies(activeThreadMsg.id);
+
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    const newMsg = payload.new;
+                    const myName = currentUser?.name || '';
+                    if (newMsg.sender_name && myName && !newMsg.sender_name.toLowerCase().includes(myName.toLowerCase())) {
+                        triggerDesktopNotification(newMsg.sender_name, newMsg.content);
+                    }
+                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => {
                 fetchPolls();
@@ -177,7 +225,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [threadReplies]);
 
-    // Clean Formatting & Focus Lock Commands
     const execCmd = (e, command, value = null) => {
         if (e) e.preventDefault();
         if (editorRef.current) {
@@ -228,7 +275,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
         setIsEmojiPickerOpen(false);
     };
 
-    // File Attachment Handlers
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -250,7 +296,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
         reader.readAsDataURL(file);
     };
 
-    // Audio Recording Handlers
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -645,17 +690,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
         if (!rawHtml) return;
         await postMessagePayload(rawHtml);
 
-        // Insert mention notification into activity_feed when '@' is present
         if (rawHtml.includes('@')) {
             const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
             let cleanSnippet = (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
 
-            // Strip redundant "(You)" badges and duplicate @ signs
             cleanSnippet = cleanSnippet
-                .replace(/\(You\)/gi, '')          // Remove (You) text labels
-                .replace(/@\s*@+/g, '@')           // Collapse double @@ into single @
-                .replace(/(@\w+)\s+\1/gi, '$1')    // Remove consecutive duplicate mentions like @john @john
-                .replace(/\s+/g, ' ')              // Normalize spacing
+                .replace(/\(You\)/gi, '')
+                .replace(/@\s*@+/g, '@')
+                .replace(/(@\w+)\s+\1/gi, '$1')
+                .replace(/\s+/g, ' ')
                 .trim();
 
             const senderName = currentUser?.name || 'Huzaifa';
@@ -704,7 +747,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
             setThreadReplies((prev) => prev.map((m) => (m.id === tempId ? data[0] : m)));
             fetchMessages();
 
-            // Insert mention notification into activity_feed when '@' is present
             if (newThreadMessage.includes('@') && workspaceId) {
                 supabase.from('activity_feed').insert([{
                     workspace_id: workspaceId,
@@ -1013,26 +1055,45 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         )}
                     </div>
 
-                    {chatType === 'channel' && (
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setIsInviteChannelModalOpen(true)}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-200/80 shadow-2xs"
-                            >
-                                <UserPlus className="w-3.5 h-3.5 text-blue-600" /> Invite to Channel
-                            </button>
-
+                    <div className="flex items-center gap-2">
+                        {notifPermission !== 'granted' && (
                             <button
                                 onClick={() => {
-                                    setPollError('');
-                                    setIsPollModalOpen(true);
+                                    if ('Notification' in window) {
+                                        Notification.requestPermission().then((perm) => {
+                                            setNotifPermission(perm);
+                                            if (perm === 'granted') triggerToast('Desktop notifications enabled!');
+                                        });
+                                    }
                                 }}
-                                className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-blue-200/80 shadow-2xs"
+                                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-indigo-200/80 shadow-2xs"
+                                title="Enable OS Desktop Notifications"
                             >
-                                <BarChart2 className="w-4 h-4 text-blue-600" /> Create Poll
+                                <BellRing className="w-3.5 h-3.5" /> Enable Desktop Popups
                             </button>
-                        </div>
-                    )}
+                        )}
+
+                        {chatType === 'channel' && (
+                            <>
+                                <button
+                                    onClick={() => setIsInviteChannelModalOpen(true)}
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-200/80 shadow-2xs"
+                                >
+                                    <UserPlus className="w-3.5 h-3.5 text-blue-600" /> Invite to Channel
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setPollError('');
+                                        setIsPollModalOpen(true);
+                                    }}
+                                    className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-blue-200/80 shadow-2xs"
+                                >
+                                    <BarChart2 className="w-4 h-4 text-blue-600" /> Create Poll
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </header>
 
                 {errorMsg && (
