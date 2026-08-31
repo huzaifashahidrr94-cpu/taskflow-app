@@ -62,14 +62,13 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const [teamList, setTeamList] = useState([]);
     const [polls, setPolls] = useState([]);
     const [channels, setChannels] = useState(DEFAULT_CHANNELS);
-
+    const [unreadCounts, setUnreadCounts] = useState({});
+    const [highlightedMsgId, setHighlightedMsgId] = useState(null);
     const [errorMsg, setErrorMsg] = useState('');
     const [chatType, setChatType] = useState('channel');
     const [activeChannel, setActiveChannel] = useState('general');
     const [activeDmPartner, setActiveDmPartner] = useState(null);
-
     const [notifPermission, setNotifPermission] = useState('default');
-
     const [showFormatBar, setShowFormatBar] = useState(true);
     const [activeFormats, setActiveFormats] = useState({
         bold: false,
@@ -79,45 +78,54 @@ export default function TeamChat({ workspaceId, currentUser }) {
         insertUnorderedList: false,
         insertOrderedList: false
     });
-
     const [pendingFile, setPendingFile] = useState(null);
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     const fileInputRef = useRef(null);
-
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimerRef = useRef(null);
-
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isPollModalOpen, setIsPollModalOpen] = useState(false);
     const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
     const [isInviteChannelModalOpen, setIsInviteChannelModalOpen] = useState(false);
     const [myCustomStatus, setMyCustomStatus] = useState('');
-
     const [channelError, setChannelError] = useState('');
     const [pollError, setPollError] = useState('');
-
     const [newChannelName, setNewChannelName] = useState('');
     const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false);
     const [newChannelRoles, setNewChannelRoles] = useState(['admin', 'employee', 'sales']);
-
     const [pollQuestion, setPollQuestion] = useState('');
     const [pollOptionsInput, setPollOptionsInput] = useState(['Option 1', 'Option 2']);
-
     const [mentionMenu, setMentionMenu] = useState({ open: false, query: '' });
-
     const [activeThreadMsg, setActiveThreadMsg] = useState(null);
     const [threadReplies, setThreadReplies] = useState([]);
     const [newThreadMessage, setNewThreadMessage] = useState('');
-
     const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
     const [toast, setToast] = useState({ show: false, message: '' });
 
     const chatEndRef = useRef(null);
     const threadEndRef = useRef(null);
     const editorRef = useRef(null);
+
+    const getCleanWorkspaceId = async () => {
+        let id = workspaceId;
+        if (!id || id === 'undefined' || id === 'null') {
+            id = localStorage.getItem('activeOrgId');
+        }
+        if (!id || id === 'undefined' || id === 'null') {
+            const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
+            if (orgs && orgs.length > 0) {
+                id = orgs[0].id;
+            }
+        }
+        if (id && id !== 'undefined' && id !== 'null') {
+            localStorage.setItem('activeOrgId', id);
+            return id;
+        }
+        return null;
+    };
 
     if (currentUser?.role === 'client') {
         return (
@@ -131,6 +139,65 @@ export default function TeamChat({ workspaceId, currentUser }) {
         setToast({ show: true, message: msg });
         setTimeout(() => setToast({ show: false, message: '' }), 3500);
     };
+
+    // Auto-read queued pending navigation on mount or on custom event
+    useEffect(() => {
+        const processNavigation = (detail) => {
+            let nav = detail;
+            if (!nav) {
+                try {
+                    const saved = localStorage.getItem('pending_chat_nav');
+                    if (saved) {
+                        nav = JSON.parse(saved);
+                        localStorage.removeItem('pending_chat_nav');
+                    }
+                } catch (e) {
+                    console.error('Nav parse error:', e);
+                }
+            }
+
+            if (nav) {
+                if (nav.channel) {
+                    setChatType('channel');
+                    setActiveChannel(nav.channel);
+                    setActiveDmPartner(null);
+                }
+                if (nav.snippet) {
+                    setHighlightedMsgId(nav.snippet);
+                    setTimeout(() => setHighlightedMsgId(null), 3500);
+                }
+            }
+        };
+
+        processNavigation();
+
+        const handleNavigate = (e) => {
+            processNavigation(e.detail);
+        };
+
+        window.addEventListener('navigate-to-chat', handleNavigate);
+        return () => window.removeEventListener('navigate-to-chat', handleNavigate);
+    }, []);
+
+    // Auto-scroll to target message when messages load or highlight changes
+    useEffect(() => {
+        if (highlightedMsgId && allRawMessages.length > 0) {
+            const targetMsg = allRawMessages.find((m) => {
+                const cleanContent = (m.content || '').replace(/<[^>]*>/g, '').trim();
+                return cleanContent.includes(highlightedMsgId) || highlightedMsgId.includes(cleanContent);
+            });
+
+            if (targetMsg) {
+                const timer = setTimeout(() => {
+                    const el = document.getElementById(`msg-${targetMsg.id}`);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [highlightedMsgId, allRawMessages, activeChannel]);
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -152,10 +219,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 } else if (cleanBody.startsWith('[FILE_ATTACHMENT]:')) {
                     cleanBody = '📎 Sent an attachment';
                 } else {
-                    const doc = new DOMParser().parseFromString(cleanBody, 'text/html');
-                    cleanBody = doc.body.textContent || cleanBody;
+                    cleanBody = cleanBody.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
                 }
-
                 new Notification(`New message from ${sender}`, {
                     body: cleanBody.substring(0, 100),
                     icon: '/favicon.ico',
@@ -168,47 +233,73 @@ export default function TeamChat({ workspaceId, currentUser }) {
     };
 
     useEffect(() => {
-        if (!workspaceId) return;
         fetchTeamMembers();
         fetchPolls();
         fetchChannels();
     }, [workspaceId]);
 
-    // Isolated fetch and realtime subscription for current active channel/DM
     useEffect(() => {
-        if (!workspaceId) return;
-        fetchMessages();
+        let activeChannelSub = null;
 
-        const channelTopic = `chat-${workspaceId}-${chatType}-${chatType === 'channel' ? activeChannel : activeDmPartner?.id}`;
-        const subscription = supabase
-            .channel(channelTopic)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-                fetchMessages();
-                if (activeThreadMsg) fetchThreadReplies(activeThreadMsg.id);
+        const initChat = async () => {
+            const targetId = await getCleanWorkspaceId();
+            await fetchMessages();
 
-                if (payload.eventType === 'INSERT' && payload.new) {
-                    const newMsg = payload.new;
-                    const myName = currentUser?.name || '';
-                    if (newMsg.sender_name && myName && !newMsg.sender_name.toLowerCase().includes(myName.toLowerCase())) {
-                        triggerDesktopNotification(newMsg.sender_name, newMsg.content);
+            if (!targetId) return;
+
+            const channelTopic = `chat-${targetId}-${chatType}-${Math.random().toString(36).substring(7)}`;
+            activeChannelSub = supabase.channel(channelTopic);
+
+            activeChannelSub
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+                    fetchMessages();
+                    if (activeThreadMsg) fetchThreadReplies(activeThreadMsg.id);
+
+                    if (payload.eventType === 'INSERT' && payload.new) {
+                        const newMsg = payload.new;
+                        const myName = currentUser?.name || '';
+
+                        if (newMsg.sender_name && !newMsg.sender_name.toLowerCase().includes(myName.toLowerCase())) {
+                            const isMsgDM = newMsg.is_dm;
+                            const targetKey = isMsgDM ? newMsg.sender_id : newMsg.channel;
+
+                            const isCurrentActive = isMsgDM
+                                ? (chatType === 'dm' && activeDmPartner?.id === newMsg.sender_id)
+                                : (chatType === 'channel' && activeChannel === newMsg.channel);
+
+                            if (!isCurrentActive && targetKey) {
+                                setUnreadCounts(prev => ({
+                                    ...prev,
+                                    [targetKey]: (prev[targetKey] || 0) + 1
+                                }));
+                            }
+
+                            triggerDesktopNotification(newMsg.sender_name, newMsg.content);
+                        }
                     }
-                }
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => {
-                fetchPolls();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => {
-                fetchChannels();
-            })
-            .subscribe();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => {
+                    fetchPolls();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, () => {
+                    fetchChannels();
+                })
+                .subscribe();
+        };
+
+        initChat();
 
         return () => {
-            supabase.removeChannel(subscription);
+            if (activeChannelSub) {
+                supabase.removeChannel(activeChannelSub);
+            }
         };
     }, [workspaceId, chatType, activeChannel, activeDmPartner, activeThreadMsg]);
 
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (!highlightedMsgId) {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [allRawMessages, polls]);
 
     useEffect(() => {
@@ -268,12 +359,10 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if (file.size > 5 * 1024 * 1024) {
             alert('File size exceeds 5MB limit.');
             return;
         }
-
         const reader = new FileReader();
         reader.onloadend = () => {
             setPendingFile({
@@ -292,15 +381,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
             audioChunksRef.current = [];
             const mediaRecorder = new MediaRecorder(stream);
             mediaRecorderRef.current = mediaRecorder;
-
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) audioChunksRef.current.push(e.data);
             };
-
             mediaRecorder.start();
             setIsRecording(true);
             setRecordingTime(0);
-
             recordingTimerRef.current = setInterval(() => {
                 setRecordingTime((prev) => prev + 1);
             }, 1000);
@@ -313,7 +399,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const stopAndSendRecording = () => {
         if (!mediaRecorderRef.current) return;
         clearInterval(recordingTimerRef.current);
-
         mediaRecorderRef.current.onstop = async () => {
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             const reader = new FileReader();
@@ -322,14 +407,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 const base64Audio = reader.result;
                 await postMessagePayload(`[VOICE_NOTE]:${base64Audio}`);
             };
-
             if (mediaRecorderRef.current.stream) {
                 mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
             }
             setIsRecording(false);
             setRecordingTime(0);
         };
-
         mediaRecorderRef.current.stop();
     };
 
@@ -346,14 +429,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
     };
 
     const fetchChannels = async () => {
-        if (!workspaceId) return;
+        const targetId = await getCleanWorkspaceId();
+        if (!targetId) return;
+
         try {
             const { data, error } = await supabase
                 .from('channels')
                 .select('*')
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', targetId)
                 .order('created_at', { ascending: true });
-
             if (!error && data && data.length > 0) {
                 setChannels(data);
             }
@@ -365,26 +449,22 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const handleCreateChannel = async (e) => {
         e.preventDefault();
         setChannelError('');
-
-        if (!newChannelName.trim() || !workspaceId) {
+        const targetId = await getCleanWorkspaceId();
+        if (!newChannelName.trim() || !targetId) {
             setChannelError('Channel name and workspace ID are required.');
             return;
         }
-
         const formattedName = newChannelName.trim().toLowerCase().replace(/\s+/g, '-');
-
         try {
             const { error } = await supabase.from('channels').insert({
-                workspace_id: workspaceId,
+                workspace_id: targetId,
                 name: formattedName,
                 is_private: newChannelIsPrivate,
                 allowed_roles: newChannelRoles,
                 allowed_users: [],
                 created_by: currentUser?.name || 'Admin'
             });
-
             if (error) throw error;
-
             setIsChannelModalOpen(false);
             setNewChannelName('');
             setNewChannelIsPrivate(false);
@@ -400,28 +480,24 @@ export default function TeamChat({ workspaceId, currentUser }) {
     };
 
     const handleToggleChannelMember = async (targetUser) => {
+        const targetId = await getCleanWorkspaceId();
         const currentCh = channels.find((c) => c.name === activeChannel);
-        if (!currentCh) return;
-
+        if (!currentCh || !targetId) return;
         let currentAllowedUsers = Array.isArray(currentCh.allowed_users) ? [...currentCh.allowed_users] : [];
         const userIdentifier = targetUser.id || targetUser.name;
         const isMember = currentAllowedUsers.includes(userIdentifier);
-
         if (isMember) {
             currentAllowedUsers = currentAllowedUsers.filter((u) => u !== userIdentifier);
         } else {
             currentAllowedUsers.push(userIdentifier);
         }
-
         setChannels((prev) => prev.map((c) => (c.name === activeChannel ? { ...c, allowed_users: currentAllowedUsers } : c)));
-
         try {
             const { error } = await supabase
                 .from('channels')
                 .update({ allowed_users: currentAllowedUsers })
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', targetId)
                 .eq('name', activeChannel);
-
             if (error) throw error;
             triggerToast(`Access updated for ${targetUser.name}`);
         } catch (err) {
@@ -431,6 +507,9 @@ export default function TeamChat({ workspaceId, currentUser }) {
     };
 
     const fetchTeamMembers = async () => {
+        const targetId = await getCleanWorkspaceId();
+        if (!targetId) return;
+
         try {
             const { data, error } = await supabase
                 .from('organization_members')
@@ -440,10 +519,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
           custom_status,
           profiles ( full_name )
         `)
-                .eq('organization_id', workspaceId);
-
+                .eq('organization_id', targetId);
             if (error) throw error;
-
             let members = (data || []).map((m) => {
                 const isSelf = m.user_id === currentUser?.id;
                 return {
@@ -454,7 +531,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                     isSelf
                 };
             });
-
             members.sort((a, b) => a.isSelf - b.isSelf);
             setTeamList(members);
         } catch (err) {
@@ -463,14 +539,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
     };
 
     const fetchPolls = async () => {
-        if (!workspaceId) return;
+        const targetId = await getCleanWorkspaceId();
+        if (!targetId) return;
+
         try {
             const { data, error } = await supabase
                 .from('polls')
                 .select('*')
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', targetId)
                 .order('created_at', { ascending: true });
-
             if (!error && data) setPolls(data);
         } catch (err) {
             console.error('Error fetching polls:', err.message);
@@ -480,27 +557,23 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const handleCreatePoll = async (e) => {
         e.preventDefault();
         setPollError('');
-
-        if (!pollQuestion.trim() || !workspaceId) {
+        const targetId = await getCleanWorkspaceId();
+        if (!pollQuestion.trim() || !targetId) {
             setPollError('Question and Workspace ID are required.');
             return;
         }
-
         const formattedOptions = pollOptionsInput
             .filter((o) => o.trim().length > 0)
             .map((opt, idx) => ({ id: idx, text: opt.trim(), votes: [] }));
-
         try {
             const { error } = await supabase.from('polls').insert({
-                workspace_id: workspaceId,
+                workspace_id: targetId,
                 channel: activeChannel || 'general',
                 question: pollQuestion.trim(),
                 options: formattedOptions,
                 created_by: currentUser?.name || 'Team Member'
             });
-
             if (error) throw error;
-
             setIsPollModalOpen(false);
             setPollQuestion('');
             setPollOptionsInput(['Option 1', 'Option 2']);
@@ -515,9 +588,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const handleVotePoll = async (pollId, optionId) => {
         const targetPoll = polls.find((p) => p.id === pollId);
         if (!targetPoll) return;
-
         const userName = currentUser?.name || 'User';
-
         const updatedOptions = targetPoll.options.map((opt) => {
             const cleanedVotes = opt.votes.filter((v) => v !== userName);
             if (opt.id === optionId) {
@@ -525,9 +596,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
             }
             return { ...opt, votes: cleanedVotes };
         });
-
         setPolls((prev) => prev.map((p) => (p.id === pollId ? { ...p, options: updatedOptions } : p)));
-
         await supabase.from('polls').update({ options: updatedOptions }).eq('id', pollId);
     };
 
@@ -535,46 +604,62 @@ export default function TeamChat({ workspaceId, currentUser }) {
         setMyCustomStatus(statusText);
         setIsStatusModalOpen(false);
         setTeamList((prev) => prev.map((m) => (m.isSelf ? { ...m, status: statusText } : m)));
+        const targetId = await getCleanWorkspaceId();
 
         try {
-            await supabase
-                .from('organization_members')
-                .update({ custom_status: statusText })
-                .eq('organization_id', workspaceId)
-                .eq('user_id', currentUser?.id);
-
+            if (targetId && currentUser?.id) {
+                await supabase
+                    .from('organization_members')
+                    .update({ custom_status: statusText })
+                    .eq('organization_id', targetId)
+                    .eq('user_id', currentUser?.id);
+            }
             triggerToast('Live workload status updated!');
         } catch (err) {
             console.error('Error updating status:', err.message);
         }
     };
 
-    // Strict channel-isolated message fetching
     const fetchMessages = async () => {
-        if (!workspaceId) return;
+        const targetId = await getCleanWorkspaceId();
 
-        let query = supabase.from('messages').select('*').eq('workspace_id', workspaceId);
+        let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
-        if (chatType === 'channel') {
-            query = query.eq('channel', activeChannel).eq('is_dm', false);
-        } else if (chatType === 'dm') {
-            query = query.eq('is_dm', true);
+        if (targetId) {
+            query = query.eq('workspace_id', targetId);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: true });
+        let { data, error } = await query;
+
+        if ((!data || data.length === 0) && targetId) {
+            const fallback = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+            if (fallback.data && fallback.data.length > 0) {
+                data = fallback.data;
+            }
+        }
 
         if (error) {
+            console.error('❌ Database error fetching messages:', error.message);
             setErrorMsg(`Database error: ${error.message}`);
-        } else if (data) {
+            return;
+        }
+
+        if (data) {
             if (chatType === 'dm' && activeDmPartner) {
                 const dms = data.filter(
                     (m) =>
-                        (m.sender_id === currentUser?.id && m.recipient_id === activeDmPartner.id) ||
-                        (m.sender_id === activeDmPartner.id && m.recipient_id === currentUser?.id)
+                        m.is_dm &&
+                        ((m.sender_id === currentUser?.id && m.recipient_id === activeDmPartner.id) ||
+                            (m.sender_id === activeDmPartner.id && m.recipient_id === currentUser?.id))
                 );
                 setAllRawMessages(dms);
             } else {
-                setAllRawMessages(data);
+                const channelMsgs = data.filter(
+                    (m) =>
+                        (!m.is_dm || m.is_dm === false) &&
+                        (m.channel?.toLowerCase() === activeChannel?.toLowerCase() || !m.channel || m.channel === 'general')
+                );
+                setAllRawMessages(channelMsgs);
             }
         }
     };
@@ -585,7 +670,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
             .select('*')
             .eq('parent_message_id', parentMsgId)
             .order('created_at', { ascending: true });
-
         if (!error && data) setThreadReplies(data);
     };
 
@@ -593,7 +677,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
         checkActiveFormats();
         const text = editorRef.current ? editorRef.current.innerText : '';
         const lastWord = text.split(/\s/).pop() || '';
-
         if (lastWord.startsWith('@')) {
             setMentionMenu({ open: true, query: lastWord.slice(1).toLowerCase() });
         } else {
@@ -601,40 +684,41 @@ export default function TeamChat({ workspaceId, currentUser }) {
         }
     };
 
-    // In-place mention insertion fix
     const insertMention = (tagText) => {
         if (!editorRef.current) return;
-        editorRef.current.focus();
-
         const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
+        if (!sel || sel.rangeCount === 0) return;
 
-            if (range.startContainer.nodeType === Node.TEXT_NODE) {
-                const text = range.startContainer.textContent;
-                const atIdx = text.lastIndexOf('@');
-                if (atIdx !== -1) {
-                    range.startContainer.textContent = text.substring(0, atIdx);
-                }
+        const range = sel.getRangeAt(0);
+        const textNode = range.startContainer;
+
+        if (textNode.nodeType === Node.TEXT_NODE) {
+            const text = textNode.textContent;
+            const cursorOffset = range.startOffset;
+            const lastAtIdx = text.lastIndexOf('@', cursorOffset - 1);
+
+            if (lastAtIdx !== -1) {
+                const textBeforeAt = text.substring(0, lastAtIdx);
+                const textAfterCursor = text.substring(cursorOffset);
+
+                textNode.textContent = textBeforeAt;
+
+                const tagNode = document.createElement('span');
+                tagNode.className = "px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block";
+                tagNode.contentEditable = "false";
+                tagNode.textContent = `@${tagText}`;
+
+                const spaceNode = document.createTextNode('\u00A0' + textAfterCursor);
+
+                textNode.after(tagNode);
+                tagNode.after(spaceNode);
+
+                const newRange = document.createRange();
+                newRange.setStart(spaceNode, 1);
+                newRange.setEnd(spaceNode, 1);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
             }
-
-            const tagNode = document.createElement('span');
-            tagNode.className = "px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block";
-            tagNode.contentEditable = "false";
-            tagNode.textContent = `@${tagText}`;
-
-            range.insertNode(tagNode);
-
-            const spaceNode = document.createTextNode('\u00A0');
-            tagNode.after(spaceNode);
-
-            const newRange = document.createRange();
-            newRange.setStartAfter(spaceNode);
-            newRange.setEndAfter(spaceNode);
-            sel.removeAllRanges();
-            sel.addRange(newRange);
-        } else {
-            editorRef.current.innerHTML += `<span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block" contenteditable="false">@${tagText}</span>&nbsp;`;
         }
         setMentionMenu({ open: false, query: '' });
     };
@@ -644,27 +728,21 @@ export default function TeamChat({ workspaceId, currentUser }) {
         fetchThreadReplies(msg.id);
     };
 
-    // Fail-safe post logic that preserves text until Supabase confirms insert
     const postMessagePayload = async (contentString) => {
         setErrorMsg('');
         if (!contentString.trim()) return;
 
-        let targetWorkspaceId = workspaceId;
+        const targetWorkspaceId = await getCleanWorkspaceId();
         if (!targetWorkspaceId) {
-            const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
-            if (orgs && orgs.length > 0) {
-                targetWorkspaceId = orgs[0].id;
-            } else {
-                const err = "Workspace ID missing. Please refresh your workspace.";
-                setErrorMsg(err);
-                triggerToast(err);
-                return;
-            }
+            const err = "Workspace ID missing. Please refresh your workspace.";
+            setErrorMsg(err);
+            triggerToast(err);
+            if (editorRef.current) editorRef.current.innerHTML = contentString;
+            return;
         }
 
         const isDM = chatType === 'dm';
         const senderName = currentUser?.name || 'Team Member';
-
         const payload = {
             workspace_id: targetWorkspaceId,
             channel: isDM ? 'direct-message' : activeChannel || 'general',
@@ -677,54 +755,51 @@ export default function TeamChat({ workspaceId, currentUser }) {
             reactions: []
         };
 
-        // Insert into DB
         const { data, error } = await supabase.from('messages').insert([payload]).select();
-
         if (error) {
             setErrorMsg(`Failed to send message: ${error.message}`);
             triggerToast(`Error: ${error.message}`);
-            // DO NOT CLEAR EDITOR -> Text stays safe in input box
+            if (editorRef.current) editorRef.current.innerHTML = contentString;
             return;
         }
 
-        // CLEAR EDITOR ONLY ON CONFIRMED SUCCESS
-        if (editorRef.current) editorRef.current.innerHTML = '';
         setPendingFile(null);
         setMentionMenu({ open: false, query: '' });
 
         if (data && data[0]) {
             setAllRawMessages((prev) => [...prev, data[0]]);
 
-            // Sync to Unified Activity Inbox
-            const doc = new DOMParser().parseFromString(contentString, 'text/html');
-            let cleanSnippet = (doc.body.textContent || contentString).replace(/\s+/g, ' ').trim();
+            const plainText = contentString.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
             const isMention = contentString.includes('@');
 
-            try {
-                await supabase.from('activity_feed').insert([{
-                    workspace_id: targetWorkspaceId,
-                    type: isMention ? 'mention' : 'chat',
-                    category: 'Team Chat',
-                    title: isMention
-                        ? `${senderName} mentioned someone in #${activeChannel}`
-                        : `New message in #${activeChannel}`,
-                    snippet: cleanSnippet.substring(0, 140),
-                    content: contentString.trim(),
-                    read: false,
-                    sender: senderName
-                }]);
-            } catch (feedErr) {
-                console.warn('Activity feed sync note:', feedErr.message);
+            const activityPayload = {
+                id: crypto.randomUUID(),
+                workspace_id: targetWorkspaceId,
+                organization_id: targetWorkspaceId,
+                type: isMention ? 'mention' : 'chat',
+                category: 'Team Chat',
+                title: isMention
+                    ? `${senderName} mentioned ${contentString.includes('@everyone') ? 'everyone' : 'you'} in #${activeChannel}`
+                    : `New message in #${activeChannel}`,
+                snippet: plainText.substring(0, 120) || 'New message',
+                content: contentString.trim(),
+                sender: senderName,
+                read: false,
+                created_at: new Date().toISOString()
+            };
+
+            const { error: feedErr } = await supabase.from('activity_feed').insert([activityPayload]);
+            if (feedErr) {
+                console.error('Activity Feed Insert Error:', feedErr.message);
+                triggerToast(`Inbox Sync Error: ${feedErr.message}`);
             }
         }
     };
 
     const handleSendMessage = async (e) => {
         if (e) e.preventDefault();
-
         let rawHtml = editorRef.current?.innerHTML?.trim() || '';
         if (rawHtml === '<br>' || rawHtml === '<p><br></p>') rawHtml = '';
-
         if (pendingFile) {
             const filePayload = JSON.stringify({
                 text: rawHtml,
@@ -732,17 +807,22 @@ export default function TeamChat({ workspaceId, currentUser }) {
             });
             rawHtml = `[FILE_ATTACHMENT]:${filePayload}`;
         }
-
         if (!rawHtml) return;
+
+        if (editorRef.current) {
+            editorRef.current.innerHTML = '';
+        }
+
         await postMessagePayload(rawHtml);
     };
 
     const handleSendThreadReply = async (e) => {
         e.preventDefault();
-        if (!newThreadMessage.trim() || !activeThreadMsg) return;
+        const targetWorkspaceId = await getCleanWorkspaceId();
+        if (!newThreadMessage.trim() || !activeThreadMsg || !targetWorkspaceId) return;
 
         const payload = {
-            workspace_id: workspaceId,
+            workspace_id: targetWorkspaceId,
             channel: activeThreadMsg.channel,
             parent_message_id: activeThreadMsg.id,
             sender_id: currentUser?.id && currentUser.id.length === 36 ? currentUser.id : null,
@@ -751,48 +831,45 @@ export default function TeamChat({ workspaceId, currentUser }) {
             content: newThreadMessage.trim(),
             reactions: []
         };
-
         const { data, error } = await supabase.from('messages').insert([payload]).select();
-
         if (error) {
             triggerToast(`Reply failed: ${error.message}`);
             return;
         }
-
         setNewThreadMessage('');
-
         if (data && data[0]) {
             setThreadReplies((prev) => [...prev, data[0]]);
             fetchMessages();
-
-            supabase.from('activity_feed').insert([{
-                workspace_id: workspaceId,
+            const { error: feedErr } = await supabase.from('activity_feed').insert([{
+                id: crypto.randomUUID(),
+                workspace_id: targetWorkspaceId,
+                organization_id: targetWorkspaceId,
                 type: 'chat',
                 category: 'Team Chat',
                 title: `${currentUser?.name || 'Team Member'} replied in thread`,
                 snippet: newThreadMessage.trim().substring(0, 140),
                 sender: currentUser?.name || 'Team Member',
-                read: false
+                read: false,
+                created_at: new Date().toISOString()
             }]);
+            if (feedErr) {
+                console.error('Thread Activity Feed Sync Error:', feedErr.message);
+            }
         }
     };
 
     const toggleReaction = async (msgId, emoji) => {
         const targetMsg = allRawMessages.find((m) => m.id === msgId) || threadReplies.find((m) => m.id === msgId);
         if (!targetMsg) return;
-
         let updatedReactions = Array.isArray(targetMsg.reactions) ? [...targetMsg.reactions] : [];
         const existingIndex = updatedReactions.findIndex((r) => r.emoji === emoji && r.user === currentUser?.name);
-
         if (existingIndex > -1) {
             updatedReactions.splice(existingIndex, 1);
         } else {
             updatedReactions.push({ emoji, user: currentUser?.name });
         }
-
         setAllRawMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, reactions: updatedReactions } : m)));
         setThreadReplies((prev) => prev.map((m) => (m.id === msgId ? { ...m, reactions: updatedReactions } : m)));
-
         if (!msgId.toString().startsWith('temp-')) {
             await supabase.from('messages').update({ reactions: updatedReactions }).eq('id', msgId);
         }
@@ -810,18 +887,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const renderFormattedContent = (content) => {
         if (!content) return '';
-
         if (content.startsWith('[VOICE_NOTE]:')) {
             const audioUrl = content.replace('[VOICE_NOTE]:', '');
             return <VoiceNotePlayer audioUrl={audioUrl} />;
         }
-
         if (content.startsWith('[FILE_ATTACHMENT]:')) {
             try {
                 const payload = JSON.parse(content.replace('[FILE_ATTACHMENT]:', ''));
                 const { text, file } = payload;
                 const isImage = file?.type?.startsWith('image/');
-
                 return (
                     <div className="space-y-2">
                         {text && <div dangerouslySetInnerHTML={{ __html: text }} className="prose text-xs max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:p-2 [&_pre]:rounded-lg [&_a]:text-blue-600 [&_a]:underline" />}
@@ -867,7 +941,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 console.error('File parse error:', err);
             }
         }
-
         return (
             <div
                 dangerouslySetInnerHTML={{ __html: content }}
@@ -880,16 +953,13 @@ export default function TeamChat({ workspaceId, currentUser }) {
         if (!ch.is_private) return true;
         const allowedRoles = Array.isArray(ch.allowed_roles) ? ch.allowed_roles : ['admin'];
         const allowedUsers = Array.isArray(ch.allowed_users) ? ch.allowed_users : [];
-
         const hasRole = allowedRoles.includes(currentUser?.role || 'employee');
         const isUserAllowed = allowedUsers.includes(currentUser?.id) || allowedUsers.includes(currentUser?.name);
-
         return hasRole || isUserAllowed || currentUser?.role === 'admin';
     });
 
     const mainMessages = allRawMessages.filter((m) => !m.parent_message_id);
     const activeChannelPolls = chatType === 'channel' ? polls.filter((p) => p.channel === activeChannel) : [];
-
     const unifiedStream = [
         ...mainMessages.map((m) => ({ ...m, itemType: 'message' })),
         ...activeChannelPolls.map((p) => ({ ...p, itemType: 'poll' }))
@@ -906,7 +976,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     return (
         <div className="relative flex h-[calc(100vh-6.5rem)] bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden font-sans">
-
             <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
 
             {/* Sidebar */}
@@ -916,7 +985,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         <MessageSquare className="w-4 h-4 text-blue-600" />
                         <span>Workspace Chat</span>
                     </div>
-
                     <button
                         onClick={() => setIsStatusModalOpen(true)}
                         className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200/60 rounded-lg transition text-xs font-bold flex items-center gap-1 cursor-pointer"
@@ -926,7 +994,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         <span className="text-[10px] hidden sm:inline">Status</span>
                     </button>
                 </div>
-
                 {myCustomStatus && (
                     <div className="mx-3 mt-3 p-2 bg-blue-50/80 border border-blue-200/70 rounded-xl flex items-center justify-between text-xs text-blue-900 font-medium">
                         <span className="truncate text-[11px] font-bold">🎯 {myCustomStatus}</span>
@@ -935,7 +1002,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         </button>
                     </div>
                 )}
-
                 <div className="p-3">
                     <div className="relative">
                         <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
@@ -946,7 +1012,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         />
                     </div>
                 </div>
-
                 <div className="flex-1 overflow-y-auto px-2 space-y-4 text-xs">
                     {/* Channels Section */}
                     <div>
@@ -966,71 +1031,90 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             )}
                         </div>
                         <div className="space-y-0.5 mt-1">
-                            {visibleChannels.map((ch) => (
-                                <button
-                                    key={ch.id || ch.name}
-                                    onClick={() => {
-                                        setChatType('channel');
-                                        setActiveChannel(ch.name);
-                                        setActiveDmPartner(null);
-                                        setActiveThreadMsg(null);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-left cursor-pointer ${chatType === 'channel' && activeChannel === ch.name
-                                        ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
-                                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2 truncate">
-                                        {ch.is_private ? (
-                                            <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                        ) : (
-                                            <Hash className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                            {visibleChannels.map((ch) => {
+                                const unread = unreadCounts[ch.name] || 0;
+                                return (
+                                    <button
+                                        key={ch.id || ch.name}
+                                        onClick={() => {
+                                            setChatType('channel');
+                                            setActiveChannel(ch.name);
+                                            setActiveDmPartner(null);
+                                            setActiveThreadMsg(null);
+                                            setUnreadCounts((prev) => ({ ...prev, [ch.name]: 0 }));
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-left cursor-pointer ${chatType === 'channel' && activeChannel === ch.name
+                                            ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
+                                            : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2 truncate">
+                                            {ch.is_private ? (
+                                                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                            ) : (
+                                                <Hash className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                                            )}
+                                            <span className="truncate">{ch.name}</span>
+                                        </div>
+                                        {unread > 0 && (
+                                            <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-rose-500 text-white rounded-full">
+                                                {unread}
+                                            </span>
                                         )}
-                                        <span className="truncate">{ch.name}</span>
-                                    </div>
-                                </button>
-                            ))}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
-
                     {/* Direct Messages Section */}
                     <div>
                         <div className="flex items-center justify-between px-2.5 py-1 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
                             <span>Direct Messages</span>
                         </div>
                         <div className="space-y-0.5 mt-1">
-                            {teamList.map((member) => (
-                                <button
-                                    key={member.id}
-                                    onClick={() => {
-                                        setChatType('dm');
-                                        setActiveDmPartner(member);
-                                        setActiveThreadMsg(null);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-left cursor-pointer ${chatType === 'dm' && activeDmPartner?.id === member.id
-                                        ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
-                                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2.5 truncate min-w-0">
-                                        <div className="relative shrink-0">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px]">
-                                                {member.name[0]?.toUpperCase()}
+                            {teamList.map((member) => {
+                                const unread = unreadCounts[member.id] || 0;
+                                return (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => {
+                                            setChatType('dm');
+                                            setActiveDmPartner(member);
+                                            setActiveThreadMsg(null);
+                                            setUnreadCounts((prev) => ({ ...prev, [member.id]: 0 }));
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-left cursor-pointer ${chatType === 'dm' && activeDmPartner?.id === member.id
+                                            ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
+                                            : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2.5 truncate min-w-0">
+                                            <div className="relative shrink-0">
+                                                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px]">
+                                                    {member.name[0]?.toUpperCase()}
+                                                </div>
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 border border-white absolute -bottom-0.5 -right-0.5"></span>
                                             </div>
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500 border border-white absolute -bottom-0.5 -right-0.5"></span>
+                                            <div className="truncate min-w-0">
+                                                <p className="font-semibold text-slate-800 text-xs truncate">{member.name}</p>
+                                                {member.status && (
+                                                    <p className="text-[10px] text-blue-600 font-bold truncate">{member.status}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="truncate min-w-0">
-                                            <p className="font-semibold text-slate-800 text-xs truncate">{member.name}</p>
-                                            {member.status && (
-                                                <p className="text-[10px] text-blue-600 font-bold truncate">{member.status}</p>
+                                        <div className="flex items-center gap-1">
+                                            {unread > 0 && (
+                                                <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-rose-500 text-white rounded-full">
+                                                    {unread}
+                                                </span>
                                             )}
+                                            <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold shrink-0 ml-1">
+                                                {member.role}
+                                            </span>
                                         </div>
-                                    </div>
-                                    <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold shrink-0 ml-1">
-                                        {member.role}
-                                    </span>
-                                </button>
-                            ))}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -1068,7 +1152,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             </>
                         )}
                     </div>
-
                     <div className="flex items-center gap-2">
                         {notifPermission !== 'granted' && (
                             <button
@@ -1086,7 +1169,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <BellRing className="w-3.5 h-3.5" /> Enable Desktop Popups
                             </button>
                         )}
-
                         {chatType === 'channel' && (
                             <>
                                 <button
@@ -1095,7 +1177,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 >
                                     <UserPlus className="w-3.5 h-3.5 text-blue-600" /> Invite to Channel
                                 </button>
-
                                 <button
                                     onClick={() => {
                                         setPollError('');
@@ -1109,14 +1190,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         )}
                     </div>
                 </header>
-
                 {errorMsg && (
                     <div className="m-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-600 font-medium">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{errorMsg}</span>
                     </div>
                 )}
-
                 <div className="flex-1 p-6 overflow-y-auto space-y-6">
                     {unifiedStream.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
@@ -1133,7 +1212,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 const poll = item;
                                 const totalVotes = poll.options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0);
                                 const myName = currentUser?.name || 'User';
-
                                 return (
                                     <div key={`poll-${poll.id}`} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 max-w-2xl shadow-xs my-2">
                                         <div className="flex items-center justify-between mb-2">
@@ -1142,15 +1220,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                             </span>
                                             <span className="text-[10px] text-slate-400 font-semibold">{totalVotes} Total Votes</span>
                                         </div>
-
                                         <h3 className="font-extrabold text-slate-900 text-sm mb-3">{poll.question}</h3>
-
                                         <div className="space-y-2">
                                             {poll.options.map((opt) => {
                                                 const votesCount = opt.votes?.length || 0;
                                                 const percent = totalVotes > 0 ? Math.round((votesCount / totalVotes) * 100) : 0;
                                                 const hasVotedThisOption = opt.votes?.includes(myName);
-
                                                 return (
                                                     <button
                                                         key={opt.id}
@@ -1165,12 +1240,10 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                                             className="absolute left-0 top-0 bottom-0 bg-blue-100/60 transition-all duration-300 pointer-events-none"
                                                             style={{ width: `${percent}%` }}
                                                         />
-
                                                         <div className="relative z-10 flex items-center gap-2 text-xs">
                                                             {hasVotedThisOption && <Check className="w-3.5 h-3.5 text-blue-600" />}
                                                             <span>{opt.text}</span>
                                                         </div>
-
                                                         <span className="relative z-10 text-[11px] font-bold text-slate-500">
                                                             {votesCount} ({percent}%)
                                                         </span>
@@ -1181,24 +1254,28 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     </div>
                                 );
                             }
-
                             const msg = item;
                             const formattedTime = msg.created_at
                                 ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                 : 'Just now';
                             const isBookmarked = bookmarkedIds.has(msg.id);
                             const reactionList = Array.isArray(msg.reactions) ? msg.reactions : [];
-
                             const replies = allRawMessages.filter((r) => r.parent_message_id === msg.id);
                             const replyCount = replies.length;
                             const lastReply = replies[replies.length - 1];
-
                             const senderMember = teamList.find((t) => t.name.toLowerCase().startsWith(msg.sender_name?.toLowerCase()));
+
+                            const cleanContent = (msg.content || '').replace(/<[^>]*>/g, '').trim();
+                            const isHighlighted = highlightedMsgId && (msg.id === highlightedMsgId || cleanContent.includes(highlightedMsgId) || highlightedMsgId.includes(cleanContent));
 
                             return (
                                 <div
+                                    id={`msg-${msg.id}`}
                                     key={`msg-${msg.id}`}
-                                    className="relative flex gap-3.5 group p-2.5 rounded-2xl hover:bg-slate-50/50 border border-transparent transition-all"
+                                    className={`relative flex gap-3.5 group p-2.5 rounded-2xl border transition-all duration-500 ${isHighlighted
+                                            ? 'bg-amber-100/90 border-amber-300 ring-2 ring-amber-400/80 shadow-md scale-[1.01]'
+                                            : 'hover:bg-slate-50/50 border-transparent'
+                                        }`}
                                 >
                                     <div className="absolute right-4 -top-3 hidden group-hover:flex items-center bg-white border border-slate-200 shadow-md rounded-xl p-1 gap-1 z-10 transition-all">
                                         {['✅', '👀', '🙌', '❤️'].map((emoji) => (
@@ -1229,11 +1306,9 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                             <Bookmark className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
-
                                     <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center font-bold text-xs text-blue-700 shrink-0 shadow-xs">
                                         {(msg.sender_name || 'U').substring(0, 2).toUpperCase()}
                                     </div>
-
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                                             <span className="font-bold text-slate-900 text-xs">{msg.sender_name}</span>
@@ -1252,11 +1327,9 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                                 </span>
                                             )}
                                         </div>
-
                                         <div className="text-sm text-slate-800 leading-relaxed bg-slate-50/80 border border-slate-200/60 rounded-2xl p-3 inline-block max-w-2xl shadow-xs">
                                             {renderFormattedContent(msg.content)}
                                         </div>
-
                                         {replyCount > 0 && (
                                             <div className="mt-2">
                                                 <button
@@ -1273,7 +1346,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                                 </button>
                                             </div>
                                         )}
-
                                         {reactionList.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-2">
                                                 {Object.entries(
@@ -1303,7 +1375,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
                 {/* WYSIWYG RICH TEXT COMPOSER */}
                 <div className="p-4 border-t border-slate-200/80 bg-white relative">
-
                     {/* Emoji Picker Popover */}
                     {isEmojiPickerOpen && (
                         <div className="absolute bottom-full left-12 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 grid grid-cols-6 gap-1.5 w-60 z-30 font-sans">
@@ -1319,7 +1390,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             ))}
                         </div>
                     )}
-
                     {/* Pending File Preview */}
                     {pendingFile && (
                         <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900 font-medium">
@@ -1333,7 +1403,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             </button>
                         </div>
                     )}
-
                     {/* Mention Options Popover */}
                     {mentionMenu.open && mentionOptions.length > 0 && (
                         <div className="absolute bottom-full left-4 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl w-64 overflow-hidden z-30 font-sans">
@@ -1345,7 +1414,10 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     <button
                                         key={opt.id}
                                         type="button"
-                                        onClick={() => insertMention(opt.name)}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            insertMention(opt.name);
+                                        }}
                                         className="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between transition cursor-pointer border-b border-slate-50 text-xs"
                                     >
                                         <span className="font-bold text-slate-800">@{opt.name}</span>
@@ -1355,7 +1427,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             </div>
                         </div>
                     )}
-
                     {isRecording ? (
                         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 flex items-center justify-between animate-pulse">
                             <div className="flex items-center gap-3">
@@ -1365,7 +1436,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
                                 </span>
                             </div>
-
                             <div className="flex items-center gap-2">
                                 <button
                                     type="button"
@@ -1386,7 +1456,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         </div>
                     ) : (
                         <div className="bg-slate-50/90 border border-slate-200 rounded-2xl overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition shadow-2xs">
-
                             {/* VISUAL FORMATTING TOOLBAR */}
                             {showFormatBar && (
                                 <div className="px-3 py-1.5 bg-slate-100/70 border-b border-slate-200/80 flex items-center gap-1 text-slate-600 flex-wrap text-xs">
@@ -1426,9 +1495,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Strikethrough className="w-3.5 h-3.5" />
                                     </button>
-
                                     <div className="w-px h-3.5 bg-slate-200 mx-1" />
-
                                     <button
                                         type="button"
                                         onMouseDown={insertLink}
@@ -1437,7 +1504,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <LinkIcon className="w-3.5 h-3.5" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onMouseDown={(e) => execCmd(e, 'insertUnorderedList')}
@@ -1456,9 +1522,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <ListOrdered className="w-3.5 h-3.5" />
                                     </button>
-
                                     <div className="w-px h-3.5 bg-slate-200 mx-1" />
-
                                     <button
                                         type="button"
                                         onMouseDown={insertCodeBlock}
@@ -1467,7 +1531,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Terminal className="w-3.5 h-3.5" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onMouseDown={clearFormatting}
@@ -1478,7 +1541,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     </button>
                                 </div>
                             )}
-
                             {/* LIVE RICH-TEXT CONTENTEDITABLE EDITING BOX */}
                             <div
                                 ref={editorRef}
@@ -1495,7 +1557,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 className="w-full min-h-[70px] max-h-48 overflow-y-auto bg-transparent text-sm text-slate-900 focus:outline-none p-3 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:font-mono [&_a]:text-blue-600 [&_a]:underline"
                                 style={{ outline: 'none' }}
                             />
-
                             {/* BOTTOM ACTION BAR */}
                             <div className="px-3 py-2 bg-slate-100/50 border-t border-slate-200/60 flex items-center justify-between">
                                 <div className="flex items-center gap-1 text-slate-500">
@@ -1507,7 +1568,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={() => setShowFormatBar(!showFormatBar)}
@@ -1517,7 +1577,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Type className="w-4 h-4" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
@@ -1526,7 +1585,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Smile className="w-4 h-4" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1540,9 +1598,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <AtSign className="w-4 h-4" />
                                     </button>
-
                                     <div className="w-px h-3.5 bg-slate-200 mx-1" />
-
                                     <button
                                         type="button"
                                         onClick={() => triggerToast("Starting Video Call Huddle...")}
@@ -1551,7 +1607,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     >
                                         <Video className="w-4 h-4" />
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={startRecording}
@@ -1561,7 +1616,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                         <Mic className="w-4 h-4 text-rose-500" />
                                     </button>
                                 </div>
-
                                 <button
                                     type="button"
                                     onClick={handleSendMessage}
@@ -1588,7 +1642,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             <X className="w-4 h-4" />
                         </button>
                     </div>
-
                     <div className="p-4 bg-white border-b border-slate-200/60 shadow-2xs">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-slate-900 text-xs">{activeThreadMsg.sender_name}</span>
@@ -1600,7 +1653,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                             {renderFormattedContent(activeThreadMsg.content)}
                         </div>
                     </div>
-
                     <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
                         {threadReplies.length === 0 ? (
                             <div className="text-center text-slate-400 py-8">
@@ -1622,7 +1674,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                         )}
                         <div ref={threadEndRef} />
                     </div>
-
                     <div className="p-3 border-t border-slate-200/80 bg-white">
                         <form onSubmit={handleSendThreadReply} className="flex items-center gap-2">
                             <input
@@ -1655,17 +1706,14 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         <p className="text-xs text-slate-500 mb-3">
                             Grant or revoke direct access for specific teammates in <b>#{activeChannel}</b>:
                         </p>
-
                         <div className="max-h-60 overflow-y-auto space-y-1.5 divide-y divide-slate-100 text-xs">
                             {teamList.map((member) => {
                                 const userIdentifier = member.id || member.name;
                                 const allowedList = Array.isArray(currentChannelObj?.allowed_users) ? currentChannelObj.allowed_users : [];
                                 const isUserAccessGranted = allowedList.includes(userIdentifier);
-
                                 return (
                                     <div key={member.id} className="pt-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2.5">
@@ -1677,7 +1725,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                                 <p className="text-[10px] text-slate-400 capitalize">{member.role}</p>
                                             </div>
                                         </div>
-
                                         <button
                                             type="button"
                                             onClick={() => handleToggleChannelMember(member)}
@@ -1692,7 +1739,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 );
                             })}
                         </div>
-
                         <div className="pt-4 flex justify-end">
                             <button
                                 type="button"
@@ -1717,14 +1763,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         {channelError && (
                             <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-600 font-medium">
                                 <AlertCircle className="w-4 h-4 shrink-0" />
                                 <span>{channelError}</span>
                             </div>
                         )}
-
                         <form onSubmit={handleCreateChannel} className="space-y-4 text-xs">
                             <div>
                                 <label className="block font-bold text-slate-600 uppercase mb-1">Channel Name</label>
@@ -1737,7 +1781,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />
                             </div>
-
                             <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                                 <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
                                     <input
@@ -1750,7 +1793,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 </label>
                                 <p className="text-[11px] text-slate-500">Only members with selected roles or explicit invitations can view or enter this channel.</p>
                             </div>
-
                             {newChannelIsPrivate && (
                                 <div>
                                     <label className="block font-bold text-slate-600 uppercase mb-1.5">Allowed Access Roles</label>
@@ -1777,7 +1819,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     </div>
                                 </div>
                             )}
-
                             <div className="pt-2 flex gap-2">
                                 <button
                                     type="button"
@@ -1809,14 +1850,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         {pollError && (
                             <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-600 font-medium">
                                 <AlertCircle className="w-4 h-4 shrink-0" />
                                 <span>{pollError}</span>
                             </div>
                         )}
-
                         <form onSubmit={handleCreatePoll} className="space-y-3.5 text-xs">
                             <div>
                                 <label className="block font-bold text-slate-600 uppercase mb-1">Poll Question</label>
@@ -1829,7 +1868,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />
                             </div>
-
                             <div>
                                 <label className="block font-bold text-slate-600 uppercase mb-1">Options</label>
                                 <div className="space-y-2">
@@ -1859,7 +1897,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                         </div>
                                     ))}
                                 </div>
-
                                 {pollOptionsInput.length < 5 && (
                                     <button
                                         type="button"
@@ -1870,7 +1907,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     </button>
                                 )}
                             </div>
-
                             <div className="pt-2 flex gap-2">
                                 <button
                                     type="button"
@@ -1902,10 +1938,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         <div className="space-y-3 text-xs">
                             <p className="text-slate-500">Pick a quick status or write your current workload focus:</p>
-
                             <div className="grid grid-cols-1 gap-1.5">
                                 {['Working on Task #1', 'In a Client Meeting', 'Deep Code Focus', 'Out for Lunch', 'Away / AFK'].map((s) => (
                                     <button
@@ -1918,7 +1952,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     </button>
                                 ))}
                             </div>
-
                             <div className="pt-2">
                                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Custom Status Text</label>
                                 <input
@@ -1929,7 +1962,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
-
                             <div className="pt-2 flex gap-2">
                                 <button
                                     type="button"
@@ -1966,7 +1998,6 @@ function VoiceNotePlayer({ audioUrl }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const audioRef = useRef(null);
-
     const togglePlay = () => {
         if (!audioRef.current) return;
         if (isPlaying) {
@@ -1976,7 +2007,6 @@ function VoiceNotePlayer({ audioUrl }) {
         }
         setIsPlaying(!isPlaying);
     };
-
     return (
         <div className="flex items-center gap-3 bg-slate-100/90 border border-slate-200/80 p-2.5 rounded-2xl min-w-[220px]">
             <audio
@@ -1997,7 +2027,6 @@ function VoiceNotePlayer({ audioUrl }) {
             >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
-
             <div className="flex-1 min-w-[120px] space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-slate-600">
                     <span className="flex items-center gap-1"><Volume2 className="w-3 h-3 text-rose-500" /> Voice Note</span>

@@ -48,6 +48,7 @@ export default function Sidebar({
         fetchBadgeCounts();
 
         const handleCustomUpdate = () => fetchBadgeCounts();
+        window.addEventListener('workgrid_badge_update', handleCustomUpdate);
         window.addEventListener('taskflow_badge_update', handleCustomUpdate);
 
         const channelTopic = `sidebar_badges_${workspaceId}_${Math.random().toString(36).substring(2, 7)}`;
@@ -59,6 +60,7 @@ export default function Sidebar({
             .subscribe();
 
         return () => {
+            window.removeEventListener('workgrid_badge_update', handleCustomUpdate);
             window.removeEventListener('taskflow_badge_update', handleCustomUpdate);
             supabase.removeChannel(channel);
         };
@@ -151,11 +153,12 @@ export default function Sidebar({
     return (
         <aside className="w-64 flex flex-col h-screen overflow-y-auto shrink-0 bg-white/80 backdrop-blur-md border-r border-slate-200/80 p-4 font-sans select-none sticky top-0">
             <div>
+                {/* --- WORKGRID BRAND HEADER --- */}
                 <div className="flex items-center gap-3 px-2 mb-6">
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center shadow-md shadow-blue-500/20">
-                        T
+                        <LayoutGrid className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-lg text-slate-900 tracking-tight">TaskFlow</span>
+                    <span className="font-bold text-lg text-slate-900 tracking-tight">Workgrid</span>
                 </div>
 
                 <nav className="space-y-5">
@@ -176,8 +179,8 @@ export default function Sidebar({
                                         key={item.id}
                                         onClick={() => setActiveTab(item.id)}
                                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${isActive
-                                                ? 'bg-blue-50 text-blue-600 font-bold'
-                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                                            ? 'bg-blue-50 text-blue-600 font-bold'
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2.5 truncate">

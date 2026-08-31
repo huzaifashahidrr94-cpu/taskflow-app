@@ -346,8 +346,13 @@ function AuthView() {
 
 function Dashboard({ session }) {
   const [organizations, setOrganizations] = useState([])
-  const [activeOrgId, setActiveOrgId] = useState(null)
+  const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || '');
   const [orgsLoading, setOrgsLoading] = useState(true)
+  useEffect(() => {
+    if (activeOrgId) {
+      localStorage.setItem('activeOrgId', activeOrgId);
+    }
+  }, [activeOrgId]);
   const [tasks, setTasks] = useState([])
   const [teamMembers, setTeamMembers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -359,6 +364,22 @@ function Dashboard({ session }) {
   const activeOrg = organizations.find(o => o.id === activeOrgId)
   const userRole = activeOrg?.role || 'admin'
   const userEmail = session?.user?.email?.split('@')[0] || 'User'
+
+  // Global listener to switch tab to chat whenever a notification is clicked
+  useEffect(() => {
+    const handleNavigateToChat = () => {
+      setActiveTab('chat');
+    };
+
+    window.addEventListener('navigate-to-chat', handleNavigateToChat);
+    return () => window.removeEventListener('navigate-to-chat', handleNavigateToChat);
+  }, []);
+
+  useEffect(() => {
+    if (activeOrgId) {
+      localStorage.setItem('activeOrgId', activeOrgId)
+    }
+  }, [activeOrgId])
 
   useEffect(() => {
     let isMounted = true
@@ -420,7 +441,14 @@ function Dashboard({ session }) {
       }
 
       setOrganizations(orgs)
-      setActiveOrgId(orgs[0].id)
+      const cachedOrgId = localStorage.getItem('activeOrgId')
+      const matchedOrg = orgs.find(o => o.id === cachedOrgId)
+      if (matchedOrg) {
+        setActiveOrgId(matchedOrg.id)
+      } else if (orgs.length > 0) {
+        setActiveOrgId(orgs[0].id)
+        localStorage.setItem('activeOrgId', orgs[0].id)
+      }
     } catch (err) {
       console.error("Error fetching organizations:", err)
     }
@@ -590,8 +618,12 @@ function Dashboard({ session }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* ClickUp/Slack Style Notifications Bell */}
-            <NotificationsPopover workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+            {/* Notifications Popover connected directly to setActiveTab */}
+            <NotificationsPopover
+              workspaceId={activeOrgId}
+              currentUser={{ name: userEmail }}
+              setActiveTab={setActiveTab}
+            />
 
             {userRole === 'admin' && (
               <button
