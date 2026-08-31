@@ -44,6 +44,11 @@ function App() {
       if (isMounted) setLoading(false)
     }, 2000)
 
+    if (!supabase) {
+      if (isMounted) setLoading(false)
+      return
+    }
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (isMounted) {
@@ -533,7 +538,7 @@ function Dashboard({ session }) {
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
 
-      {/* 1. Desktop Sidebar (Hidden on mobile) */}
+      {/* Desktop Sidebar (Hidden on mobile) */}
       <div className="hidden lg:flex shrink-0">
         <Sidebar
           activeTab={activeTab}
@@ -550,17 +555,17 @@ function Dashboard({ session }) {
         />
       </div>
 
-      {/* 2. Mobile Backdrop */}
+      {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div
           onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
         />
       )}
 
-      {/* 3. Mobile Slide-out Drawer */}
+      {/* Mobile Drawer */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white transition-transform duration-300 ease-in-out lg:hidden shadow-2xl
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 transition-transform duration-300 ease-in-out lg:hidden shadow-2xl
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <Sidebar
@@ -581,30 +586,30 @@ function Dashboard({ session }) {
         />
       </div>
 
-      {/* 4. Main App Container */}
+      {/* Main Content Pane */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <header className="min-h-[4rem] bg-white/80 backdrop-blur-md border-b border-slate-200/80 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-3 sm:py-0 gap-3 sticky top-0 z-20">
-          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 text-slate-600 hover:text-slate-900 lg:hidden rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+        {/* Strictly Sticky Clean Header */}
+        <header className="h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 text-slate-600 hover:text-slate-900 lg:hidden rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
 
-              <div className="text-xs truncate">
-                <span className="text-slate-400 font-medium">Active Workspace: </span>
-                <span className="font-semibold text-slate-800">{activeOrg?.name || 'My Workspace'}</span>
-              </div>
+            <div className="text-xs truncate">
+              <span className="text-slate-400 font-medium hidden sm:inline">Active Workspace: </span>
+              <span className="font-semibold text-slate-800 truncate">{activeOrg?.name || 'My Workspace'}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Invite button is hidden on mobile screens to save space (accessible in drawer) */}
             {userRole === 'admin' && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] font-medium text-xs sm:text-[14px] px-3 sm:px-4 py-1.5 sm:py-2 transition flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                className="hidden sm:flex bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] font-medium text-xs sm:text-[14px] px-3 sm:px-4 py-2 transition items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5" /> Invite Member
               </button>
