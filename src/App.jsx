@@ -19,6 +19,7 @@ import AICopilot from './components/AICopilot';
 import UnifiedInbox from './components/UnifiedInbox';
 import Sidebar from './components/Sidebar';
 import ToastContainer, { toast } from './components/ToastContainer';
+import NotificationsPopover from './components/NotificationsPopover';
 import { supabase } from './lib/supabase';
 import {
   CheckCircle2,
@@ -40,10 +41,6 @@ function App() {
 
   useEffect(() => {
     let isMounted = true
-
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) setLoading(false)
-    }, 2000)
 
     if (!supabase) {
       if (isMounted) setLoading(false)
@@ -71,7 +68,6 @@ function App() {
 
     return () => {
       isMounted = false
-      clearTimeout(safetyTimer)
       subscription.unsubscribe()
     }
   }, [])
@@ -159,7 +155,7 @@ function AuthView() {
             }
           }
         } catch (fallbackErr) {
-          console.warn('Client-side organization provisioning note:', fallbackErr.message)
+          console.warn('Organization provisioning note:', fallbackErr.message)
         }
 
         toast.success("Account created successfully!")
@@ -377,7 +373,7 @@ function Dashboard({ session }) {
   }, [])
 
   useEffect(() => {
-    if (activeOrgId && activeOrgId !== 'workspace-default') {
+    if (activeOrgId) {
       fetchTasks()
       fetchTeamMembers()
     }
@@ -406,57 +402,27 @@ function Dashboard({ session }) {
       })).filter(o => o.id);
 
       if (orgs.length === 0) {
-        const userMetaCompany = session?.user?.user_metadata?.company_name || 'My Workspace'
-        const { data: newOrg, error: orgErr } = await supabase
+        const { data: newOrg, error: createErr } = await supabase
           .from('organizations')
-          .insert({ name: userMetaCompany })
+          .insert({ name: 'My Workspace' })
           .select()
           .single()
 
-        if (!orgErr && newOrg) {
-          await supabase
-            .from('organization_members')
-            .insert({
-              user_id: session.user.id,
-              organization_id: newOrg.id,
-              role: 'admin'
-            })
+        if (createErr || !newOrg) throw createErr;
 
-          orgs = [{ id: newOrg.id, name: newOrg.name, role: 'admin' }]
-        }
-      }
-
-      if (orgs.length > 0) {
-        setOrganizations(orgs)
-        setActiveOrgId(orgs[0].id)
-      } else {
-        await provisionFallbackOrg()
-      }
-    } catch (err) {
-      console.error("Error fetching organizations:", err)
-      await provisionFallbackOrg()
-    }
-  }
-
-  const provisionFallbackOrg = async () => {
-    try {
-      const { data: newOrg } = await supabase
-        .from('organizations')
-        .insert({ name: 'My Workspace' })
-        .select()
-        .single()
-
-      if (newOrg) {
         await supabase.from('organization_members').insert({
           user_id: session.user.id,
           organization_id: newOrg.id,
           role: 'admin'
         })
-        setOrganizations([{ id: newOrg.id, name: newOrg.name, role: 'admin' }])
-        setActiveOrgId(newOrg.id)
+
+        orgs = [{ id: newOrg.id, name: newOrg.name, role: 'admin' }]
       }
+
+      setOrganizations(orgs)
+      setActiveOrgId(orgs[0].id)
     } catch (err) {
-      console.error("Failed to provision fallback org:", err)
+      console.error("Error fetching organizations:", err)
     }
   }
 
@@ -624,6 +590,9 @@ function Dashboard({ session }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* ClickUp/Slack Style Notifications Bell */}
+            <NotificationsPopover workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+
             {userRole === 'admin' && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
@@ -781,7 +750,6 @@ function Dashboard({ session }) {
           onClose={() => setIsModalOpen(false)}
           orgId={activeOrgId}
           teamMembers={teamMembers}
-          session={session}
           onSuccess={() => {
             setIsModalOpen(false)
             fetchTasks()
@@ -804,7 +772,7 @@ function Dashboard({ session }) {
   )
 }
 
-function NewTaskModal({ onClose, orgId, teamMembers = [], session, onSuccess }) {
+function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
   const [title, setTitle] = useState('')
   const [status, setStatus] = useState('todo')
   const [priority, setPriority] = useState('medium')
@@ -821,36 +789,10 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], session, onSuccess }) 
     setError(null)
 
     try {
-      let targetOrgId = orgId;
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-      // Ensure valid UUID format
-      if (!targetOrgId || !uuidRegex.test(targetOrgId)) {
-        const { data: newOrg, error: orgErr } = await supabase
-          .from('organizations')
-          .insert({ name: 'My Workspace' })
-          .select()
-          .single()
-
-        if (orgErr || !newOrg) {
-          throw new Error("Could not initialize workspace. Please refresh.")
-        }
-
-        if (session?.user?.id) {
-          await supabase.from('organization_members').insert({
-            user_id: session.user.id,
-            organization_id: newOrg.id,
-            role: 'admin'
-          })
-        }
-
-        targetOrgId = newOrg.id;
-      }
-
       const { error: insertError } = await supabase
         .from('tasks')
         .insert({
-          organization_id: targetOrgId,
+          organization_id: orgId,
           title,
           status,
           priority,
