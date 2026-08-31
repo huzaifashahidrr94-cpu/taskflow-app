@@ -174,12 +174,14 @@ export default function TeamChat({ workspaceId, currentUser }) {
         fetchChannels();
     }, [workspaceId]);
 
+    // Isolated fetch and realtime subscription for current active channel/DM
     useEffect(() => {
         if (!workspaceId) return;
         fetchMessages();
 
+        const channelTopic = `chat-${workspaceId}-${chatType}-${chatType === 'channel' ? activeChannel : activeDmPartner?.id}`;
         const subscription = supabase
-            .channel(`chat-room-${workspaceId}`)
+            .channel(channelTopic)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
                 fetchMessages();
                 if (activeThreadMsg) fetchThreadReplies(activeThreadMsg.id);
@@ -547,13 +549,16 @@ export default function TeamChat({ workspaceId, currentUser }) {
         }
     };
 
+    // Strict channel-isolated message fetching
     const fetchMessages = async () => {
         if (!workspaceId) return;
 
         let query = supabase.from('messages').select('*').eq('workspace_id', workspaceId);
 
         if (chatType === 'channel') {
-            query = query.eq('channel', activeChannel);
+            query = query.eq('channel', activeChannel).eq('is_dm', false);
+        } else if (chatType === 'dm') {
+            query = query.eq('is_dm', true);
         }
 
         const { data, error } = await query.order('created_at', { ascending: true });
@@ -569,7 +574,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 );
                 setAllRawMessages(dms);
             } else {
-                setAllRawMessages(data.filter((m) => !m.is_dm));
+                setAllRawMessages(data);
             }
         }
     };
@@ -596,29 +601,41 @@ export default function TeamChat({ workspaceId, currentUser }) {
         }
     };
 
+    // In-place mention insertion fix
     const insertMention = (tagText) => {
         if (!editorRef.current) return;
         editorRef.current.focus();
 
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const node = range.startContainer;
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
 
-            if (node.nodeType === Node.TEXT_NODE) {
-                const text = node.textContent;
-                const lastAtPos = text.lastIndexOf('@');
-                if (lastAtPos !== -1) {
-                    node.textContent = text.slice(0, lastAtPos);
+            if (range.startContainer.nodeType === Node.TEXT_NODE) {
+                const text = range.startContainer.textContent;
+                const atIdx = text.lastIndexOf('@');
+                if (atIdx !== -1) {
+                    range.startContainer.textContent = text.substring(0, atIdx);
                 }
             }
-        }
 
-        execCmd(
-            null,
-            'insertHTML',
-            `<span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block" contenteditable="false">@${tagText}</span>&nbsp;`
-        );
+            const tagNode = document.createElement('span');
+            tagNode.className = "px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block";
+            tagNode.contentEditable = "false";
+            tagNode.textContent = `@${tagText}`;
+
+            range.insertNode(tagNode);
+
+            const spaceNode = document.createTextNode('\u00A0');
+            tagNode.after(spaceNode);
+
+            const newRange = document.createRange();
+            newRange.setStartAfter(spaceNode);
+            newRange.setEndAfter(spaceNode);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+        } else {
+            editorRef.current.innerHTML += `<span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-xs inline-block" contenteditable="false">@${tagText}</span>&nbsp;`;
+        }
         setMentionMenu({ open: false, query: '' });
     };
 
@@ -627,18 +644,18 @@ export default function TeamChat({ workspaceId, currentUser }) {
         fetchThreadReplies(msg.id);
     };
 
+    // Fail-safe post logic that preserves text until Supabase confirms insert
     const postMessagePayload = async (contentString) => {
         setErrorMsg('');
         if (!contentString.trim()) return;
 
-        // Resolve workspace ID if state isn't ready
         let targetWorkspaceId = workspaceId;
         if (!targetWorkspaceId) {
             const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
             if (orgs && orgs.length > 0) {
                 targetWorkspaceId = orgs[0].id;
             } else {
-                const err = "Workspace ID missing. Please refresh the page.";
+                const err = "Workspace ID missing. Please refresh your workspace.";
                 setErrorMsg(err);
                 triggerToast(err);
                 return;
@@ -660,21 +677,25 @@ export default function TeamChat({ workspaceId, currentUser }) {
             reactions: []
         };
 
-        if (editorRef.current) editorRef.current.innerHTML = '';
-        setMentionMenu({ open: false, query: '' });
-
-        const tempId = 'temp-' + Date.now();
-        setAllRawMessages((prev) => [...prev, { ...payload, id: tempId, created_at: new Date().toISOString() }]);
-
+        // Insert into DB
         const { data, error } = await supabase.from('messages').insert([payload]).select();
 
         if (error) {
             setErrorMsg(`Failed to send message: ${error.message}`);
             triggerToast(`Error: ${error.message}`);
-            setAllRawMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-        } else if (data && data[0]) {
-            setAllRawMessages((prev) => prev.map((msg) => (msg.id === tempId ? data[0] : msg)));
+            // DO NOT CLEAR EDITOR -> Text stays safe in input box
+            return;
+        }
 
+        // CLEAR EDITOR ONLY ON CONFIRMED SUCCESS
+        if (editorRef.current) editorRef.current.innerHTML = '';
+        setPendingFile(null);
+        setMentionMenu({ open: false, query: '' });
+
+        if (data && data[0]) {
+            setAllRawMessages((prev) => [...prev, data[0]]);
+
+            // Sync to Unified Activity Inbox
             const doc = new DOMParser().parseFromString(contentString, 'text/html');
             let cleanSnippet = (doc.body.textContent || contentString).replace(/\s+/g, ' ').trim();
             const isMention = contentString.includes('@');
@@ -685,7 +706,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                     type: isMention ? 'mention' : 'chat',
                     category: 'Team Chat',
                     title: isMention
-                        ? `${senderName} mentioned you in #${activeChannel}`
+                        ? `${senderName} mentioned someone in #${activeChannel}`
                         : `New message in #${activeChannel}`,
                     snippet: cleanSnippet.substring(0, 140),
                     content: contentString.trim(),
@@ -710,7 +731,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 file: pendingFile
             });
             rawHtml = `[FILE_ATTACHMENT]:${filePayload}`;
-            setPendingFile(null);
         }
 
         if (!rawHtml) return;
@@ -732,15 +752,17 @@ export default function TeamChat({ workspaceId, currentUser }) {
             reactions: []
         };
 
-        setNewThreadMessage('');
-
-        const tempId = 'temp-thread-' + Date.now();
-        setThreadReplies((prev) => [...prev, { ...payload, id: tempId, created_at: new Date().toISOString() }]);
-
         const { data, error } = await supabase.from('messages').insert([payload]).select();
 
-        if (!error && data && data[0]) {
-            setThreadReplies((prev) => prev.map((m) => (m.id === tempId ? data[0] : m)));
+        if (error) {
+            triggerToast(`Reply failed: ${error.message}`);
+            return;
+        }
+
+        setNewThreadMessage('');
+
+        if (data && data[0]) {
+            setThreadReplies((prev) => [...prev, data[0]]);
             fetchMessages();
 
             supabase.from('activity_feed').insert([{
