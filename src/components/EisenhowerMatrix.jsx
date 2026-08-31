@@ -8,9 +8,8 @@ import {
     CheckCircle2,
     Loader2,
     Clock,
-    AlertCircle,
-    ArrowRight,
-    Filter
+    Filter,
+    GripVertical
 } from 'lucide-react';
 
 export default function EisenhowerMatrix({ workspaceId }) {
@@ -46,7 +45,6 @@ export default function EisenhowerMatrix({ workspaceId }) {
     };
 
     const updateTaskQuadrant = async (taskId, priority, dueDate) => {
-        // Quadrants are derived from priority and due date proximity
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, priority, due_date: dueDate } : t))
         );
@@ -84,6 +82,31 @@ export default function EisenhowerMatrix({ workspaceId }) {
     const q3Delegate = tasks.filter((t) => isUrgent(t) && !isImportant(t) && t.status !== 'completed');
     const q4Eliminate = tasks.filter((t) => !isUrgent(t) && !isImportant(t) && t.status !== 'completed');
 
+    // Drag and Drop Event Handlers
+    const handleDragStart = (e, taskId) => {
+        e.dataTransfer.setData('text/plain', taskId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetQuadrantKey) => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData('text/plain');
+        if (!taskId) return;
+
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+        if (targetQuadrantKey === 'do') updateTaskQuadrant(taskId, 'high', tomorrow);
+        if (targetQuadrantKey === 'schedule') updateTaskQuadrant(taskId, 'medium', nextWeek);
+        if (targetQuadrantKey === 'delegate') updateTaskQuadrant(taskId, 'low', tomorrow);
+        if (targetQuadrantKey === 'eliminate') updateTaskQuadrant(taskId, 'low', null);
+    };
+
     if (loading) {
         return (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans">
@@ -94,7 +117,7 @@ export default function EisenhowerMatrix({ workspaceId }) {
     }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full font-sans">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full font-sans">
             {/* Matrix Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -102,7 +125,7 @@ export default function EisenhowerMatrix({ workspaceId }) {
                         <Flame className="w-6 h-6 text-rose-500" /> Eisenhower Task Matrix
                     </h1>
                     <p className="text-slate-500 text-sm mt-0.5">
-                        Focus on what truly drives impact. Manage urgency versus importance in real time.
+                        Focus on what truly drives impact. Drag and drop or use controls to manage urgency vs importance.
                     </p>
                 </div>
 
@@ -112,11 +135,15 @@ export default function EisenhowerMatrix({ workspaceId }) {
                 </div>
             </div>
 
-            {/* $2 \times 2$ Grid Layout */}
+            {/* Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* QUADRANT 1: DO FIRST */}
-                <div className="bg-rose-50/50 border-2 border-rose-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, 'do')}
+                    className="bg-rose-50/50 border-2 border-rose-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between transition-colors hover:border-rose-300"
+                >
                     <div>
                         <div className="flex items-center justify-between mb-4 border-b border-rose-200/80 pb-3">
                             <div className="flex items-center gap-2">
@@ -133,12 +160,20 @@ export default function EisenhowerMatrix({ workspaceId }) {
                             </span>
                         </div>
 
-                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 min-h-[100px]">
                             {q1DoFirst.length === 0 ? (
-                                <p className="text-xs text-rose-400 font-medium text-center py-6">No urgent fires right now!</p>
+                                <p className="text-xs text-rose-400 font-medium text-center py-8 border border-dashed border-rose-200 rounded-2xl">
+                                    Drop urgent fires here!
+                                </p>
                             ) : (
                                 q1DoFirst.map((t) => (
-                                    <MatrixTaskCard key={t.id} task={t} onShift={updateTaskQuadrant} targetQuadrant="do" />
+                                    <MatrixTaskCard
+                                        key={t.id}
+                                        task={t}
+                                        onShift={updateTaskQuadrant}
+                                        targetQuadrant="do"
+                                        onDragStart={handleDragStart}
+                                    />
                                 ))
                             )}
                         </div>
@@ -146,7 +181,11 @@ export default function EisenhowerMatrix({ workspaceId }) {
                 </div>
 
                 {/* QUADRANT 2: SCHEDULE */}
-                <div className="bg-blue-50/50 border-2 border-blue-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, 'schedule')}
+                    className="bg-blue-50/50 border-2 border-blue-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between transition-colors hover:border-blue-300"
+                >
                     <div>
                         <div className="flex items-center justify-between mb-4 border-b border-blue-200/80 pb-3">
                             <div className="flex items-center gap-2">
@@ -163,12 +202,20 @@ export default function EisenhowerMatrix({ workspaceId }) {
                             </span>
                         </div>
 
-                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 min-h-[100px]">
                             {q2Schedule.length === 0 ? (
-                                <p className="text-xs text-blue-400 font-medium text-center py-6">No scheduled strategic tasks.</p>
+                                <p className="text-xs text-blue-400 font-medium text-center py-8 border border-dashed border-blue-200 rounded-2xl">
+                                    Drop strategic tasks here!
+                                </p>
                             ) : (
                                 q2Schedule.map((t) => (
-                                    <MatrixTaskCard key={t.id} task={t} onShift={updateTaskQuadrant} targetQuadrant="schedule" />
+                                    <MatrixTaskCard
+                                        key={t.id}
+                                        task={t}
+                                        onShift={updateTaskQuadrant}
+                                        targetQuadrant="schedule"
+                                        onDragStart={handleDragStart}
+                                    />
                                 ))
                             )}
                         </div>
@@ -176,7 +223,11 @@ export default function EisenhowerMatrix({ workspaceId }) {
                 </div>
 
                 {/* QUADRANT 3: DELEGATE */}
-                <div className="bg-amber-50/50 border-2 border-amber-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, 'delegate')}
+                    className="bg-amber-50/50 border-2 border-amber-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between transition-colors hover:border-amber-300"
+                >
                     <div>
                         <div className="flex items-center justify-between mb-4 border-b border-amber-200/80 pb-3">
                             <div className="flex items-center gap-2">
@@ -193,20 +244,32 @@ export default function EisenhowerMatrix({ workspaceId }) {
                             </span>
                         </div>
 
-                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 min-h-[100px]">
                             {q3Delegate.length === 0 ? (
-                                <p className="text-xs text-amber-500 font-medium text-center py-6">No tasks to delegate.</p>
+                                <p className="text-xs text-amber-500 font-medium text-center py-8 border border-dashed border-amber-200 rounded-2xl">
+                                    Drop delegation tasks here!
+                                </p>
                             ) : (
                                 q3Delegate.map((t) => (
-                                    <MatrixTaskCard key={t.id} task={t} onShift={updateTaskQuadrant} targetQuadrant="delegate" />
+                                    <MatrixTaskCard
+                                        key={t.id}
+                                        task={t}
+                                        onShift={updateTaskQuadrant}
+                                        targetQuadrant="delegate"
+                                        onDragStart={handleDragStart}
+                                    />
                                 ))
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* QUADRANT 4: ELIMINATE / LOW PRIORITY */}
-                <div className="bg-slate-100/70 border-2 border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                {/* QUADRANT 4: ELIMINATE / BACKLOG */}
+                <div
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, 'eliminate')}
+                    className="bg-slate-100/70 border-2 border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between transition-colors hover:border-slate-300"
+                >
                     <div>
                         <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
                             <div className="flex items-center gap-2">
@@ -223,12 +286,20 @@ export default function EisenhowerMatrix({ workspaceId }) {
                             </span>
                         </div>
 
-                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 min-h-[100px]">
                             {q4Eliminate.length === 0 ? (
-                                <p className="text-xs text-slate-400 font-medium text-center py-6">No backlog items.</p>
+                                <p className="text-xs text-slate-400 font-medium text-center py-8 border border-dashed border-slate-200 rounded-2xl">
+                                    Drop low priority items here!
+                                </p>
                             ) : (
                                 q4Eliminate.map((t) => (
-                                    <MatrixTaskCard key={t.id} task={t} onShift={updateTaskQuadrant} targetQuadrant="eliminate" />
+                                    <MatrixTaskCard
+                                        key={t.id}
+                                        task={t}
+                                        onShift={updateTaskQuadrant}
+                                        targetQuadrant="eliminate"
+                                        onDragStart={handleDragStart}
+                                    />
                                 ))
                             )}
                         </div>
@@ -248,21 +319,30 @@ export default function EisenhowerMatrix({ workspaceId }) {
     );
 }
 
-function MatrixTaskCard({ task, onShift, targetQuadrant }) {
+function MatrixTaskCard({ task, onShift, targetQuadrant, onDragStart }) {
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
     return (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs hover:shadow-sm transition flex items-center justify-between gap-3 text-xs">
-            <div className="min-w-0 flex-1">
-                <h4 className="font-bold text-slate-900 text-xs truncate">{task.title}</h4>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-                    <span className="font-semibold text-slate-600">{task.assignee || task.assigned_to || 'Unassigned'}</span>
-                    {task.due_date && (
-                        <span className="flex items-center gap-1 font-mono text-slate-500">
-                            <Clock className="w-3 h-3 text-slate-400" /> {task.due_date}
+        <div
+            draggable
+            onDragStart={(e) => onDragStart(e, task.id)}
+            className="group bg-white border border-slate-200/90 hover:border-blue-400 rounded-2xl p-3.5 shadow-2xs hover:shadow-md transition cursor-grab active:cursor-grabbing flex items-center justify-between gap-3 text-xs"
+        >
+            <div className="min-w-0 flex-1 flex items-center gap-2">
+                <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0" />
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 text-xs truncate">{task.title}</h4>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                        <span className="font-semibold text-slate-600 truncate max-w-[100px]">
+                            {task.assignee || task.assigned_to || 'Unassigned'}
                         </span>
-                    )}
+                        {task.due_date && (
+                            <span className="flex items-center gap-1 font-mono text-slate-500 shrink-0">
+                                <Clock className="w-3 h-3 text-slate-400" /> {task.due_date}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -276,7 +356,7 @@ function MatrixTaskCard({ task, onShift, targetQuadrant }) {
                     if (val === 'eliminate') onShift(task.id, 'low', null);
                 }}
                 value={targetQuadrant}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-700 outline-none cursor-pointer"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-700 outline-none cursor-pointer shrink-0"
             >
                 <option value="do">Move to: Do First</option>
                 <option value="schedule">Move to: Schedule</option>
