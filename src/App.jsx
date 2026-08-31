@@ -367,27 +367,17 @@ function Dashboard({ session }) {
   useEffect(() => {
     let isMounted = true
 
-    const safetyTimer = setTimeout(() => {
-      if (isMounted && orgsLoading) {
-        const fallbackId = 'workspace-default'
-        setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
-        setActiveOrgId(fallbackId)
-        setOrgsLoading(false)
-      }
-    }, 2000)
-
     fetchOrganizations().finally(() => {
       if (isMounted) setOrgsLoading(false)
     })
 
     return () => {
       isMounted = false
-      clearTimeout(safetyTimer)
     }
   }, [])
 
   useEffect(() => {
-    if (activeOrgId) {
+    if (activeOrgId && activeOrgId !== 'workspace-default') {
       fetchTasks()
       fetchTeamMembers()
     }
@@ -440,15 +430,33 @@ function Dashboard({ session }) {
         setOrganizations(orgs)
         setActiveOrgId(orgs[0].id)
       } else {
-        const fallbackId = 'workspace-default'
-        setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
-        setActiveOrgId(fallbackId)
+        await provisionFallbackOrg()
       }
     } catch (err) {
       console.error("Error fetching organizations:", err)
-      const fallbackId = 'workspace-default'
-      setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
-      setActiveOrgId(fallbackId)
+      await provisionFallbackOrg()
+    }
+  }
+
+  const provisionFallbackOrg = async () => {
+    try {
+      const { data: newOrg } = await supabase
+        .from('organizations')
+        .insert({ name: 'My Workspace' })
+        .select()
+        .single()
+
+      if (newOrg) {
+        await supabase.from('organization_members').insert({
+          user_id: session.user.id,
+          organization_id: newOrg.id,
+          role: 'admin'
+        })
+        setOrganizations([{ id: newOrg.id, name: newOrg.name, role: 'admin' }])
+        setActiveOrgId(newOrg.id)
+      }
+    } catch (err) {
+      console.error("Failed to provision fallback org:", err)
     }
   }
 
@@ -773,6 +781,7 @@ function Dashboard({ session }) {
           onClose={() => setIsModalOpen(false)}
           orgId={activeOrgId}
           teamMembers={teamMembers}
+          session={session}
           onSuccess={() => {
             setIsModalOpen(false)
             fetchTasks()
@@ -795,7 +804,7 @@ function Dashboard({ session }) {
   )
 }
 
-function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
+function NewTaskModal({ onClose, orgId, teamMembers = [], session, onSuccess }) {
   const [title, setTitle] = useState('')
   const [status, setStatus] = useState('todo')
   const [priority, setPriority] = useState('medium')
@@ -812,10 +821,36 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
     setError(null)
 
     try {
-      const { error } = await supabase
+      let targetOrgId = orgId;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      // Ensure valid UUID format
+      if (!targetOrgId || !uuidRegex.test(targetOrgId)) {
+        const { data: newOrg, error: orgErr } = await supabase
+          .from('organizations')
+          .insert({ name: 'My Workspace' })
+          .select()
+          .single()
+
+        if (orgErr || !newOrg) {
+          throw new Error("Could not initialize workspace. Please refresh.")
+        }
+
+        if (session?.user?.id) {
+          await supabase.from('organization_members').insert({
+            user_id: session.user.id,
+            organization_id: newOrg.id,
+            role: 'admin'
+          })
+        }
+
+        targetOrgId = newOrg.id;
+      }
+
+      const { error: insertError } = await supabase
         .from('tasks')
         .insert({
-          organization_id: orgId,
+          organization_id: targetOrgId,
           title,
           status,
           priority,
@@ -825,7 +860,7 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
           is_client_visible: isClientVisible
         })
 
-      if (error) throw error
+      if (insertError) throw insertError
       onSuccess()
     } catch (err) {
       setError(err.message)
