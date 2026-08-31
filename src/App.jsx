@@ -25,6 +25,7 @@ import {
   Building,
   User,
   X,
+  Menu,
   Loader2,
   ShieldCheck,
   UserPlus,
@@ -37,17 +38,36 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
+    let isMounted = true
+
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false)
+    }, 2000)
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (isMounted) {
+          setSession(session)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.error("Auth session error:", err)
+        if (isMounted) setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setLoading(false)
+      if (isMounted) {
+        setSession(session)
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      clearTimeout(safetyTimer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (loading) {
@@ -87,7 +107,6 @@ function AuthView() {
 
     try {
       if (isSignUp) {
-        // Pass organization metadata directly during signup registration
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
@@ -104,7 +123,6 @@ function AuthView() {
 
         const userId = authData.user.id
 
-        // Client-side fallback setup in case database trigger is not enabled
         try {
           await supabase.from('profiles').upsert({ id: userId, full_name: fullName })
 
@@ -325,13 +343,32 @@ function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('inbox')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const activeOrg = organizations.find(o => o.id === activeOrgId)
   const userRole = activeOrg?.role || 'admin'
   const userEmail = session?.user?.email?.split('@')[0] || 'User'
 
   useEffect(() => {
-    fetchOrganizations()
+    let isMounted = true
+
+    const safetyTimer = setTimeout(() => {
+      if (isMounted && orgsLoading) {
+        const fallbackId = 'workspace-default'
+        setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
+        setActiveOrgId(fallbackId)
+        setOrgsLoading(false)
+      }
+    }, 2000)
+
+    fetchOrganizations().finally(() => {
+      if (isMounted) setOrgsLoading(false)
+    })
+
+    return () => {
+      isMounted = false
+      clearTimeout(safetyTimer)
+    }
   }, [])
 
   useEffect(() => {
@@ -342,7 +379,6 @@ function Dashboard({ session }) {
   }, [activeOrgId])
 
   const fetchOrganizations = async () => {
-    setOrgsLoading(true)
     try {
       const { data, error } = await supabase
         .from('organization_members')
@@ -365,7 +401,6 @@ function Dashboard({ session }) {
       })).filter(o => o.id);
 
       if (orgs.length === 0) {
-        // Self-Healing provision: Check user metadata or create a default organization
         const userMetaCompany = session?.user?.user_metadata?.company_name || 'My Workspace'
         const { data: newOrg, error: orgErr } = await supabase
           .from('organizations')
@@ -390,7 +425,6 @@ function Dashboard({ session }) {
         setOrganizations(orgs)
         setActiveOrgId(orgs[0].id)
       } else {
-        // Instant Fallback to prevent infinite loading screens
         const fallbackId = 'workspace-default'
         setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
         setActiveOrgId(fallbackId)
@@ -400,8 +434,6 @@ function Dashboard({ session }) {
       const fallbackId = 'workspace-default'
       setOrganizations([{ id: fallbackId, name: 'My Workspace', role: 'admin' }])
       setActiveOrgId(fallbackId)
-    } finally {
-      setOrgsLoading(false)
     }
   }
 
@@ -500,44 +532,91 @@ function Dashboard({ session }) {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        workspaceId={activeOrgId}
-        userRole={userRole}
-        currentUser={{
-          id: session?.user?.id,
-          name: userEmail,
-          fullName: (teamMembers || []).find(m => m?.user_id === session?.user?.id)?.profiles?.full_name || userEmail
-        }}
-        onSignOut={handleSignOut}
-        onOpenInvite={() => setIsInviteModalOpen(true)}
-      />
 
+      {/* 1. Desktop Sidebar (Hidden on mobile) */}
+      <div className="hidden lg:flex shrink-0">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          workspaceId={activeOrgId}
+          userRole={userRole}
+          currentUser={{
+            id: session?.user?.id,
+            name: userEmail,
+            fullName: (teamMembers || []).find(m => m?.user_id === session?.user?.id)?.profiles?.full_name || userEmail
+          }}
+          onSignOut={handleSignOut}
+          onOpenInvite={() => setIsInviteModalOpen(true)}
+        />
+      </div>
+
+      {/* 2. Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs lg:hidden"
+        />
+      )}
+
+      {/* 3. Mobile Slide-out Drawer */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white transition-transform duration-300 ease-in-out lg:hidden shadow-2xl
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab)
+            setIsMobileMenuOpen(false)
+          }}
+          workspaceId={activeOrgId}
+          userRole={userRole}
+          currentUser={{
+            id: session?.user?.id,
+            name: userEmail,
+            fullName: (teamMembers || []).find(m => m?.user_id === session?.user?.id)?.profiles?.full_name || userEmail
+          }}
+          onSignOut={handleSignOut}
+          onOpenInvite={() => setIsInviteModalOpen(true)}
+        />
+      </div>
+
+      {/* 4. Main App Container */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <header className="h-16 bg-white/60 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-8 sticky top-0 z-20">
-          <div className="text-xs">
-            <span className="text-slate-400 font-medium">Active Workspace: </span>
-            <span className="font-semibold text-slate-800">{activeOrg?.name || 'My Workspace'}</span>
+        <header className="min-h-[4rem] bg-white/80 backdrop-blur-md border-b border-slate-200/80 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-3 sm:py-0 gap-3 sticky top-0 z-20">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-1.5 text-slate-600 hover:text-slate-900 lg:hidden rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
+              <div className="text-xs truncate">
+                <span className="text-slate-400 font-medium">Active Workspace: </span>
+                <span className="font-semibold text-slate-800">{activeOrg?.name || 'My Workspace'}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
             {userRole === 'admin' && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] font-medium text-[14px] px-4 py-2 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] font-medium text-xs sm:text-[14px] px-3 sm:px-4 py-1.5 sm:py-2 transition flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5" /> Invite Member
               </button>
             )}
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/60 text-xs">
-              <ShieldCheck className="w-4 h-4 text-indigo-600" />
-              <span className="text-slate-500 font-medium">Portal View:</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200/60 text-xs shrink-0">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span className="text-slate-500 font-medium hidden md:inline">Portal View:</span>
               <select
                 value={userRole || 'admin'}
                 onChange={(e) => updateMemberRole(session?.user?.id, e.target.value)}
-                className="bg-transparent text-indigo-600 font-bold outline-none cursor-pointer"
+                className="bg-transparent text-indigo-600 font-bold outline-none cursor-pointer text-xs"
               >
                 <option value="admin">Admin (Employer)</option>
                 <option value="hr">HR Manager</option>
@@ -634,7 +713,7 @@ function Dashboard({ session }) {
         )}
 
         {(activeTab === 'sales' || activeTab === 'deals') && (userRole === 'admin' || userRole === 'sales') && (
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             <DealsKanban workspaceId={activeOrgId} />
           </div>
         )}
@@ -644,7 +723,7 @@ function Dashboard({ session }) {
         )}
 
         {activeTab === 'chat' && userRole !== 'client' && (
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             <TeamChat
               workspaceId={activeOrgId}
               currentUser={{
