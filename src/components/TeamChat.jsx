@@ -629,13 +629,27 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const postMessagePayload = async (contentString) => {
         setErrorMsg('');
-        if (!contentString.trim() || !workspaceId) return;
+        if (!contentString.trim()) return;
+
+        // Resolve workspace ID if state isn't ready
+        let targetWorkspaceId = workspaceId;
+        if (!targetWorkspaceId) {
+            const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
+            if (orgs && orgs.length > 0) {
+                targetWorkspaceId = orgs[0].id;
+            } else {
+                const err = "Workspace ID missing. Please refresh the page.";
+                setErrorMsg(err);
+                triggerToast(err);
+                return;
+            }
+        }
 
         const isDM = chatType === 'dm';
         const senderName = currentUser?.name || 'Team Member';
 
         const payload = {
-            workspace_id: workspaceId,
+            workspace_id: targetWorkspaceId,
             channel: isDM ? 'direct-message' : activeChannel || 'general',
             is_dm: isDM,
             recipient_id: isDM && activeDmPartner?.id ? activeDmPartner.id : null,
@@ -661,14 +675,13 @@ export default function TeamChat({ workspaceId, currentUser }) {
         } else if (data && data[0]) {
             setAllRawMessages((prev) => prev.map((msg) => (msg.id === tempId ? data[0] : msg)));
 
-            // Always sync into Unified Activity Inbox for all messages
             const doc = new DOMParser().parseFromString(contentString, 'text/html');
             let cleanSnippet = (doc.body.textContent || contentString).replace(/\s+/g, ' ').trim();
             const isMention = contentString.includes('@');
 
             try {
                 await supabase.from('activity_feed').insert([{
-                    workspace_id: workspaceId,
+                    workspace_id: targetWorkspaceId,
                     type: isMention ? 'mention' : 'chat',
                     category: 'Team Chat',
                     title: isMention
@@ -706,7 +719,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const handleSendThreadReply = async (e) => {
         e.preventDefault();
-        if (!newThreadMessage.trim() || !activeThreadMsg || !workspaceId) return;
+        if (!newThreadMessage.trim() || !activeThreadMsg) return;
 
         const payload = {
             workspace_id: workspaceId,
