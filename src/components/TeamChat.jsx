@@ -9,7 +9,6 @@ import {
     Paperclip,
     Bookmark,
     CornerUpLeft,
-    Zap,
     CheckCircle2,
     X,
     User,
@@ -69,10 +68,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const [activeChannel, setActiveChannel] = useState('general');
     const [activeDmPartner, setActiveDmPartner] = useState(null);
 
-    // Desktop Notification Permission State
     const [notifPermission, setNotifPermission] = useState('default');
 
-    // Formatting Toolbar Toggle & Active States
     const [showFormatBar, setShowFormatBar] = useState(true);
     const [activeFormats, setActiveFormats] = useState({
         bold: false,
@@ -83,42 +80,34 @@ export default function TeamChat({ workspaceId, currentUser }) {
         insertOrderedList: false
     });
 
-    // File Attachment & Emoji Picker States
     const [pendingFile, setPendingFile] = useState(null);
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Audio Recording States
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimerRef = useRef(null);
 
-    // Modal States
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isPollModalOpen, setIsPollModalOpen] = useState(false);
     const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
     const [isInviteChannelModalOpen, setIsInviteChannelModalOpen] = useState(false);
     const [myCustomStatus, setMyCustomStatus] = useState('');
 
-    // Form Errors
     const [channelError, setChannelError] = useState('');
     const [pollError, setPollError] = useState('');
 
-    // Channel Form State
     const [newChannelName, setNewChannelName] = useState('');
     const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false);
     const [newChannelRoles, setNewChannelRoles] = useState(['admin', 'employee', 'sales']);
 
-    // Poll Form State
     const [pollQuestion, setPollQuestion] = useState('');
     const [pollOptionsInput, setPollOptionsInput] = useState(['Option 1', 'Option 2']);
 
-    // Mention State
     const [mentionMenu, setMentionMenu] = useState({ open: false, query: '' });
 
-    // Thread Drawer State
     const [activeThreadMsg, setActiveThreadMsg] = useState(null);
     const [threadReplies, setThreadReplies] = useState([]);
     const [newThreadMessage, setNewThreadMessage] = useState('');
@@ -143,7 +132,6 @@ export default function TeamChat({ workspaceId, currentUser }) {
         setTimeout(() => setToast({ show: false, message: '' }), 3500);
     };
 
-    // Request OS Desktop Notifications on Mount
     useEffect(() => {
         if ('Notification' in window) {
             setNotifPermission(Notification.permission);
@@ -641,11 +629,12 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const postMessagePayload = async (contentString) => {
         setErrorMsg('');
-        if (!contentString.trim() || !workspaceId) return;
+        const activeWorkspace = workspaceId || 'default-workspace';
+        if (!contentString.trim()) return;
 
         const isDM = chatType === 'dm';
         const payload = {
-            workspace_id: workspaceId,
+            workspace_id: activeWorkspace,
             channel: isDM ? 'direct-message' : activeChannel || 'general',
             is_dm: isDM,
             recipient_id: isDM && activeDmPartner?.id ? activeDmPartner.id : null,
@@ -666,6 +655,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
         if (error) {
             setErrorMsg(`Failed to send message: ${error.message}`);
+            triggerToast(`Error: ${error.message}`);
             setAllRawMessages((prev) => prev.filter((msg) => msg.id !== tempId));
         } else if (data && data[0]) {
             setAllRawMessages((prev) => prev.map((msg) => (msg.id === tempId ? data[0] : msg)));
@@ -701,19 +691,17 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            const senderName = currentUser?.name || 'Huzaifa';
+            const senderName = currentUser?.name || 'Team Member';
 
             try {
                 await supabase.from('activity_feed').insert([{
-                    id: 'act-' + Date.now(),
-                    workspace_id: workspaceId || 'red vision',
+                    workspace_id: workspaceId || 'default-workspace',
                     type: 'mention',
                     category: 'Team Chat',
                     title: `${senderName} mentioned you in chat`,
                     snippet: cleanSnippet,
                     read: false,
-                    sender: senderName,
-                    created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    sender: senderName
                 }]);
             } catch (err) {
                 console.error('Error syncing mention:', err.message);
@@ -723,10 +711,10 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const handleSendThreadReply = async (e) => {
         e.preventDefault();
-        if (!newThreadMessage.trim() || !activeThreadMsg || !workspaceId) return;
+        if (!newThreadMessage.trim() || !activeThreadMsg) return;
 
         const payload = {
-            workspace_id: workspaceId,
+            workspace_id: workspaceId || 'default-workspace',
             channel: activeThreadMsg.channel,
             parent_message_id: activeThreadMsg.id,
             sender_id: currentUser?.id && currentUser.id.length === 36 ? currentUser.id : null,
@@ -747,18 +735,16 @@ export default function TeamChat({ workspaceId, currentUser }) {
             setThreadReplies((prev) => prev.map((m) => (m.id === tempId ? data[0] : m)));
             fetchMessages();
 
-            if (newThreadMessage.includes('@') && workspaceId) {
+            if (newThreadMessage.includes('@')) {
                 supabase.from('activity_feed').insert([{
-                    workspace_id: workspaceId,
+                    workspace_id: workspaceId || 'default-workspace',
                     type: 'mention',
                     category: 'Team Chat',
                     title: `${currentUser?.name || 'Team Member'} mentioned someone in a thread`,
                     snippet: newThreadMessage.trim(),
                     sender: currentUser?.name || 'Team Member',
                     read: false
-                }]).then(({ error: feedErr }) => {
-                    if (feedErr) console.error('activity_feed insert error:', feedErr.message);
-                });
+                }]);
             }
         }
     };
@@ -1948,11 +1934,10 @@ export default function TeamChat({ workspaceId, currentUser }) {
     );
 }
 
-// Inline Voice Note Player Component
 function VoiceNotePlayer({ audioUrl }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
-    const audioRef = useRef(null);
+    audioRef = useRef(null);
 
     const togglePlay = () => {
         if (!audioRef.current) return;
