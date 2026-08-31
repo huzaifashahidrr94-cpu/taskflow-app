@@ -18,6 +18,7 @@ import OKRsGoals from './components/OKRsGoals';
 import AICopilot from './components/AICopilot';
 import UnifiedInbox from './components/UnifiedInbox';
 import Sidebar from './components/Sidebar';
+import ToastContainer, { toast } from './components/ToastContainer';
 import { supabase } from './lib/supabase';
 import {
   CheckCircle2,
@@ -83,7 +84,12 @@ function App() {
     )
   }
 
-  return session ? <Dashboard session={session} /> : <AuthView />
+  return (
+    <>
+      <ToastContainer />
+      {session ? <Dashboard session={session} /> : <AuthView />}
+    </>
+  )
 }
 
 function AuthView() {
@@ -156,15 +162,18 @@ function AuthView() {
           console.warn('Client-side organization provisioning note:', fallbackErr.message)
         }
 
+        toast.success("Account created successfully!")
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (signInError) throw signInError
+        toast.success("Welcome back to TaskFlow!")
       }
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
@@ -183,6 +192,7 @@ function AuthView() {
       if (googleError) throw googleError
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
       setLoading(false)
     }
   }
@@ -479,6 +489,7 @@ function Dashboard({ session }) {
 
   const updateTaskField = async (taskId, field, value) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, [field]: value } : t))
+    toast.info(`Task ${field} updated`)
     try {
       await supabase
         .from('tasks')
@@ -486,11 +497,13 @@ function Dashboard({ session }) {
         .eq('id', taskId)
     } catch (err) {
       console.error(`Error updating task ${field}`, err)
+      toast.error("Failed to sync task change")
     }
   }
 
   const deleteTask = async (taskId) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
+    toast.info("Task removed")
     try {
       await supabase
         .from('tasks')
@@ -512,6 +525,8 @@ function Dashboard({ session }) {
       )
     }
 
+    toast.success(`Role updated to ${newRole}`)
+
     try {
       await supabase
         .from('organization_members')
@@ -524,6 +539,7 @@ function Dashboard({ session }) {
   }
 
   const handleSignOut = () => {
+    toast.info("Signed out successfully")
     supabase.auth.signOut()
   }
 
@@ -538,7 +554,6 @@ function Dashboard({ session }) {
   return (
     <div className="flex h-[100dvh] w-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
 
-      {/* Desktop Sidebar (Hidden on mobile) */}
       <div className="hidden lg:flex shrink-0">
         <Sidebar
           activeTab={activeTab}
@@ -555,7 +570,6 @@ function Dashboard({ session }) {
         />
       </div>
 
-      {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div
           onClick={() => setIsMobileMenuOpen(false)}
@@ -563,7 +577,6 @@ function Dashboard({ session }) {
         />
       )}
 
-      {/* Mobile Drawer */}
       <div className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 transition-transform duration-300 ease-in-out lg:hidden shadow-2xl
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -586,10 +599,7 @@ function Dashboard({ session }) {
         />
       </div>
 
-      {/* Main Content Pane */}
       <main className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-y-auto overflow-x-hidden relative">
-
-        {/* Strictly Pinned Opaque Sticky Header */}
         <header className="sticky top-0 z-30 w-full h-14 sm:h-16 bg-white border-b border-slate-200/90 flex items-center justify-between px-3 sm:px-8 shrink-0 shadow-xs">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
@@ -633,7 +643,6 @@ function Dashboard({ session }) {
           </div>
         </header>
 
-        {/* Tab Content Wrapper */}
         <div className="flex-1 w-full max-w-full overflow-x-hidden">
           {activeTab === 'inbox' && userRole !== 'client' && (
             <UnifiedInbox workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
@@ -767,6 +776,7 @@ function Dashboard({ session }) {
           onSuccess={() => {
             setIsModalOpen(false)
             fetchTasks()
+            toast.success("Task created successfully!")
           }}
         />
       )}
@@ -819,6 +829,7 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
       onSuccess()
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
@@ -951,13 +962,14 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
   )
 }
 
-function InviteModal({ onClose, orgId, onSuccess }) {
+function InviteModal({ onClose, orgId }) {
   const [copied, setCopied] = useState(false)
   const inviteLink = `${window.location.origin}?invite=${orgId}`
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(inviteLink)
     setCopied(true)
+    toast.success("Workspace invite link copied!")
     setTimeout(() => setCopied(false), 2000)
   }
 
