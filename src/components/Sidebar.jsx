@@ -43,26 +43,27 @@ export default function Sidebar({
     const userInitial = (userEmail[0] || 'U').toUpperCase();
 
     useEffect(() => {
-        if (workspaceId) {
-            fetchBadgeCounts();
+        if (!workspaceId) return;
 
-            // Listen to instant local badge updates across components
-            const handleCustomUpdate = () => fetchBadgeCounts();
-            window.addEventListener('taskflow_badge_update', handleCustomUpdate);
+        fetchBadgeCounts();
 
-            // Listen to Supabase Realtime changes
-            const channel = supabase
-                .channel('sidebar_live_badges')
-                .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-                    fetchBadgeCounts();
-                })
-                .subscribe();
+        // Listen to instant local badge updates across components
+        const handleCustomUpdate = () => fetchBadgeCounts();
+        window.addEventListener('taskflow_badge_update', handleCustomUpdate);
 
-            return () => {
-                window.removeEventListener('taskflow_badge_update', handleCustomUpdate);
-                supabase.removeChannel(channel);
-            };
-        }
+        // Dynamic channel ID prevents re-attaching listeners to an already subscribed channel
+        const channelTopic = `sidebar_badges_${workspaceId}_${Math.random().toString(36).substring(2, 7)}`;
+        const channel = supabase
+            .channel(channelTopic)
+            .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+                fetchBadgeCounts();
+            })
+            .subscribe();
+
+        return () => {
+            window.removeEventListener('taskflow_badge_update', handleCustomUpdate);
+            supabase.removeChannel(channel);
+        };
     }, [workspaceId, myName, activeTab]);
 
     const fetchBadgeCounts = async () => {
@@ -155,8 +156,8 @@ export default function Sidebar({
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
                                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${isActive
-                                        ? 'bg-slate-100/80 text-blue-600 font-semibold'
-                                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                                    ? 'bg-slate-100/80 text-blue-600 font-semibold'
+                                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                                     }`}
                             >
                                 <div className="flex items-center gap-3 truncate">
