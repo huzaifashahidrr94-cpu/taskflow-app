@@ -77,7 +77,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#F8FAFC]">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
@@ -188,7 +188,7 @@ function AuthView() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-4 font-sans">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#F8FAFC] p-4 font-sans">
       <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-200/50">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 text-white mb-4 shadow-md shadow-blue-500/20">
@@ -529,14 +529,14 @@ function Dashboard({ session }) {
 
   if (orgsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#F8FAFC]">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
+    <div className="flex h-[100dvh] w-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
 
       {/* Desktop Sidebar (Hidden on mobile) */}
       <div className="hidden lg:flex shrink-0">
@@ -587,10 +587,11 @@ function Dashboard({ session }) {
       </div>
 
       {/* Main Content Pane */}
-      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        {/* Strictly Sticky Clean Header */}
-        <header className="h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-y-auto overflow-x-hidden relative">
+
+        {/* Strictly Pinned Opaque Sticky Header */}
+        <header className="sticky top-0 z-30 w-full h-14 sm:h-16 bg-white border-b border-slate-200/90 flex items-center justify-between px-3 sm:px-8 shrink-0 shadow-xs">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1.5 text-slate-600 hover:text-slate-900 lg:hidden rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
@@ -598,14 +599,13 @@ function Dashboard({ session }) {
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            <div className="text-xs truncate">
+            <div className="text-xs truncate max-w-[160px] sm:max-w-none">
               <span className="text-slate-400 font-medium hidden sm:inline">Active Workspace: </span>
               <span className="font-semibold text-slate-800 truncate">{activeOrg?.name || 'My Workspace'}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Invite button is hidden on mobile screens to save space (accessible in drawer) */}
             {userRole === 'admin' && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
@@ -615,13 +615,13 @@ function Dashboard({ session }) {
               </button>
             )}
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200/60 text-xs shrink-0">
-              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+            <div className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-slate-100 border border-slate-200/60 text-xs shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
               <span className="text-slate-500 font-medium hidden md:inline">Portal View:</span>
               <select
                 value={userRole || 'admin'}
                 onChange={(e) => updateMemberRole(session?.user?.id, e.target.value)}
-                className="bg-transparent text-indigo-600 font-bold outline-none cursor-pointer text-xs"
+                className="bg-transparent text-indigo-600 font-bold outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-none"
               >
                 <option value="admin">Admin (Employer)</option>
                 <option value="hr">HR Manager</option>
@@ -633,103 +633,117 @@ function Dashboard({ session }) {
           </div>
         </header>
 
-        {activeTab === 'inbox' && userRole !== 'client' && (
-          <UnifiedInbox workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+        {/* Tab Content Wrapper */}
+        <div className="flex-1 w-full max-w-full overflow-x-hidden">
+          {activeTab === 'inbox' && userRole !== 'client' && (
+            <UnifiedInbox workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'tasks' && userRole !== 'client' && (
-          <CompanyTasks
-            tasks={tasks}
-            teamMembers={teamMembers}
-            loading={loading}
-            userRole={userRole}
-            currentUser={{
-              id: session?.user?.id,
-              name: userEmail,
-              fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
-            }}
-            onUpdateField={updateTaskField}
-            onDeleteTask={deleteTask}
-            onOpenModal={() => setIsModalOpen(true)}
-          />
-        )}
+          {activeTab === 'tasks' && userRole !== 'client' && (
+            <CompanyTasks
+              tasks={tasks}
+              teamMembers={teamMembers}
+              loading={loading}
+              userRole={userRole}
+              currentUser={{
+                id: session?.user?.id,
+                name: userEmail,
+                fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
+              }}
+              onUpdateField={updateTaskField}
+              onDeleteTask={deleteTask}
+              onOpenModal={() => setIsModalOpen(true)}
+            />
+          )}
 
-        {activeTab === 'copilot' && userRole !== 'client' && (
-          <AICopilot
-            workspaceId={activeOrgId}
-            currentUser={{ name: userEmail }}
-            userRole={userRole}
-          />
-        )}
+          {activeTab === 'copilot' && userRole !== 'client' && (
+            <AICopilot
+              workspaceId={activeOrgId}
+              currentUser={{ name: userEmail }}
+              userRole={userRole}
+            />
+          )}
 
-        {activeTab === 'matrix' && userRole !== 'client' && (
-          <EisenhowerMatrix workspaceId={activeOrgId} />
-        )}
+          {activeTab === 'matrix' && userRole !== 'client' && (
+            <EisenhowerMatrix workspaceId={activeOrgId} />
+          )}
 
-        {activeTab === 'okrs' && userRole !== 'client' && (
-          <OKRsGoals workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+          {activeTab === 'okrs' && userRole !== 'client' && (
+            <OKRsGoals workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'forms' && userRole !== 'client' && (
-          <FormsBuilder workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+          {activeTab === 'forms' && userRole !== 'client' && (
+            <FormsBuilder workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'helpdesk' && userRole !== 'client' && (
-          <HelpdeskTickets workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+          {activeTab === 'helpdesk' && userRole !== 'client' && (
+            <HelpdeskTickets workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'timetracking' && userRole !== 'client' && (
-          <TimeTracking workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+          {activeTab === 'timetracking' && userRole !== 'client' && (
+            <TimeTracking workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'invoicing' && userRole !== 'client' && (
-          <InvoicingBilling workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
-        )}
+          {activeTab === 'invoicing' && userRole !== 'client' && (
+            <InvoicingBilling workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
+          )}
 
-        {activeTab === 'docs' && userRole !== 'client' && (
-          <DocsWiki
-            workspaceId={activeOrgId}
-            currentUser={{
-              id: session?.user?.id,
-              name: userEmail,
-              fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
-            }}
-          />
-        )}
+          {activeTab === 'docs' && userRole !== 'client' && (
+            <DocsWiki
+              workspaceId={activeOrgId}
+              currentUser={{
+                id: session?.user?.id,
+                name: userEmail,
+                fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
+              }}
+            />
+          )}
 
-        {activeTab === 'hr' && userRole !== 'client' && (
-          <HRManagement
-            workspaceId={activeOrgId}
-            userRole={userRole}
-            currentUser={{
-              id: session?.user?.id,
-              name: userEmail,
-              fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
-            }}
-          />
-        )}
+          {activeTab === 'hr' && userRole !== 'client' && (
+            <HRManagement
+              workspaceId={activeOrgId}
+              userRole={userRole}
+              currentUser={{
+                id: session?.user?.id,
+                name: userEmail,
+                fullName: teamMembers.find(m => m.user_id === session?.user?.id)?.profiles?.full_name || userEmail
+              }}
+            />
+          )}
 
-        {activeTab === 'analytics' && userRole !== 'client' && (
-          <AnalyticsDashboard workspaceId={activeOrgId} />
-        )}
+          {activeTab === 'analytics' && userRole !== 'client' && (
+            <AnalyticsDashboard workspaceId={activeOrgId} />
+          )}
 
-        {activeTab === 'automations' && userRole !== 'client' && (
-          <WorkflowAutomation workspaceId={activeOrgId} />
-        )}
+          {activeTab === 'automations' && userRole !== 'client' && (
+            <WorkflowAutomation workspaceId={activeOrgId} />
+          )}
 
-        {(activeTab === 'sales' || activeTab === 'deals') && (userRole === 'admin' || userRole === 'sales') && (
-          <div className="p-4 sm:p-8">
-            <DealsKanban workspaceId={activeOrgId} />
-          </div>
-        )}
+          {(activeTab === 'sales' || activeTab === 'deals') && (userRole === 'admin' || userRole === 'sales') && (
+            <div className="p-4 sm:p-8">
+              <DealsKanban workspaceId={activeOrgId} />
+            </div>
+          )}
 
-        {activeTab === 'contacts' && userRole !== 'client' && (
-          <ContactsDirectory workspaceId={activeOrgId} />
-        )}
+          {activeTab === 'contacts' && userRole !== 'client' && (
+            <ContactsDirectory workspaceId={activeOrgId} />
+          )}
 
-        {activeTab === 'chat' && userRole !== 'client' && (
-          <div className="p-4 sm:p-8">
-            <TeamChat
+          {activeTab === 'chat' && userRole !== 'client' && (
+            <div className="p-4 sm:p-8">
+              <TeamChat
+                workspaceId={activeOrgId}
+                currentUser={{
+                  id: session?.user?.id,
+                  name: userEmail,
+                  role: userRole
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === 'team' && userRole !== 'client' && (
+            <TeamRoles
               workspaceId={activeOrgId}
               currentUser={{
                 id: session?.user?.id,
@@ -737,23 +751,12 @@ function Dashboard({ session }) {
                 role: userRole
               }}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'team' && userRole !== 'client' && (
-          <TeamRoles
-            workspaceId={activeOrgId}
-            currentUser={{
-              id: session?.user?.id,
-              name: userEmail,
-              role: userRole
-            }}
-          />
-        )}
-
-        {userRole === 'client' && (
-          <ClientPortal workspaceName={activeOrg?.name} tasks={tasks} />
-        )}
+          {userRole === 'client' && (
+            <ClientPortal workspaceName={activeOrg?.name} tasks={tasks} />
+          )}
+        </div>
       </main>
 
       {isModalOpen && (
