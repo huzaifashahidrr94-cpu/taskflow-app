@@ -629,17 +629,18 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const postMessagePayload = async (contentString) => {
         setErrorMsg('');
-        const activeWorkspace = workspaceId || 'default-workspace';
-        if (!contentString.trim()) return;
+        if (!contentString.trim() || !workspaceId) return;
 
         const isDM = chatType === 'dm';
+        const senderName = currentUser?.name || 'Team Member';
+
         const payload = {
-            workspace_id: activeWorkspace,
+            workspace_id: workspaceId,
             channel: isDM ? 'direct-message' : activeChannel || 'general',
             is_dm: isDM,
             recipient_id: isDM && activeDmPartner?.id ? activeDmPartner.id : null,
             sender_id: currentUser?.id && currentUser.id.length === 36 ? currentUser.id : null,
-            sender_name: currentUser?.name || 'Team Member',
+            sender_name: senderName,
             sender_role: currentUser?.role || 'team',
             content: contentString.trim(),
             reactions: []
@@ -659,6 +660,28 @@ export default function TeamChat({ workspaceId, currentUser }) {
             setAllRawMessages((prev) => prev.filter((msg) => msg.id !== tempId));
         } else if (data && data[0]) {
             setAllRawMessages((prev) => prev.map((msg) => (msg.id === tempId ? data[0] : msg)));
+
+            // Always sync into Unified Activity Inbox for all messages
+            const doc = new DOMParser().parseFromString(contentString, 'text/html');
+            let cleanSnippet = (doc.body.textContent || contentString).replace(/\s+/g, ' ').trim();
+            const isMention = contentString.includes('@');
+
+            try {
+                await supabase.from('activity_feed').insert([{
+                    workspace_id: workspaceId,
+                    type: isMention ? 'mention' : 'chat',
+                    category: 'Team Chat',
+                    title: isMention
+                        ? `${senderName} mentioned you in #${activeChannel}`
+                        : `New message in #${activeChannel}`,
+                    snippet: cleanSnippet.substring(0, 140),
+                    content: contentString.trim(),
+                    read: false,
+                    sender: senderName
+                }]);
+            } catch (feedErr) {
+                console.warn('Activity feed sync note:', feedErr.message);
+            }
         }
     };
 
@@ -679,42 +702,14 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
         if (!rawHtml) return;
         await postMessagePayload(rawHtml);
-
-        if (rawHtml.includes('@')) {
-            const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
-            let cleanSnippet = (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
-
-            cleanSnippet = cleanSnippet
-                .replace(/\(You\)/gi, '')
-                .replace(/@\s*@+/g, '@')
-                .replace(/(@\w+)\s+\1/gi, '$1')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            const senderName = currentUser?.name || 'Team Member';
-
-            try {
-                await supabase.from('activity_feed').insert([{
-                    workspace_id: workspaceId || 'default-workspace',
-                    type: 'mention',
-                    category: 'Team Chat',
-                    title: `${senderName} mentioned you in chat`,
-                    snippet: cleanSnippet,
-                    read: false,
-                    sender: senderName
-                }]);
-            } catch (err) {
-                console.error('Error syncing mention:', err.message);
-            }
-        }
     };
 
     const handleSendThreadReply = async (e) => {
         e.preventDefault();
-        if (!newThreadMessage.trim() || !activeThreadMsg) return;
+        if (!newThreadMessage.trim() || !activeThreadMsg || !workspaceId) return;
 
         const payload = {
-            workspace_id: workspaceId || 'default-workspace',
+            workspace_id: workspaceId,
             channel: activeThreadMsg.channel,
             parent_message_id: activeThreadMsg.id,
             sender_id: currentUser?.id && currentUser.id.length === 36 ? currentUser.id : null,
@@ -735,17 +730,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
             setThreadReplies((prev) => prev.map((m) => (m.id === tempId ? data[0] : m)));
             fetchMessages();
 
-            if (newThreadMessage.includes('@')) {
-                supabase.from('activity_feed').insert([{
-                    workspace_id: workspaceId || 'default-workspace',
-                    type: 'mention',
-                    category: 'Team Chat',
-                    title: `${currentUser?.name || 'Team Member'} mentioned someone in a thread`,
-                    snippet: newThreadMessage.trim(),
-                    sender: currentUser?.name || 'Team Member',
-                    read: false
-                }]);
-            }
+            supabase.from('activity_feed').insert([{
+                workspace_id: workspaceId,
+                type: 'chat',
+                category: 'Team Chat',
+                title: `${currentUser?.name || 'Team Member'} replied in thread`,
+                snippet: newThreadMessage.trim().substring(0, 140),
+                sender: currentUser?.name || 'Team Member',
+                read: false
+            }]);
         }
     };
 
@@ -1937,7 +1930,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
 function VoiceNotePlayer({ audioUrl }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
-    audioRef = useRef(null);
+    const audioRef = useRef(null);
 
     const togglePlay = () => {
         if (!audioRef.current) return;
