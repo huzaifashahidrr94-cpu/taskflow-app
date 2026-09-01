@@ -96,6 +96,11 @@ export default function TeamChat({ workspaceId, currentUser }) {
     const [newChannelName, setNewChannelName] = useState('');
     const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false);
     const [newChannelRoles, setNewChannelRoles] = useState(['admin', 'employee', 'sales']);
+
+    // New state for specific user invitations on channel creation
+    const [newChannelUserInput, setNewChannelUserInput] = useState('');
+    const [newChannelUsers, setNewChannelUsers] = useState([]);
+
     const [pollQuestion, setPollQuestion] = useState('');
     const [pollOptionsInput, setPollOptionsInput] = useState(['Option 1', 'Option 2']);
     const [mentionMenu, setMentionMenu] = useState({ open: false, query: '' });
@@ -446,6 +451,19 @@ export default function TeamChat({ workspaceId, currentUser }) {
         }
     };
 
+    const handleAddNewChannelUser = (e) => {
+        if (e) e.preventDefault();
+        const trimmed = newChannelUserInput.trim().toLowerCase();
+        if (trimmed && !newChannelUsers.includes(trimmed)) {
+            setNewChannelUsers([...newChannelUsers, trimmed]);
+            setNewChannelUserInput('');
+        }
+    };
+
+    const handleRemoveNewChannelUser = (userToRemove) => {
+        setNewChannelUsers(newChannelUsers.filter((u) => u !== userToRemove));
+    };
+
     const handleCreateChannel = async (e) => {
         e.preventDefault();
         setChannelError('');
@@ -461,7 +479,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 name: formattedName,
                 is_private: newChannelIsPrivate,
                 allowed_roles: newChannelRoles,
-                allowed_users: [],
+                allowed_users: newChannelUsers, // Updated to pass invited members!
                 created_by: currentUser?.name || 'Admin'
             });
             if (error) throw error;
@@ -469,6 +487,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
             setNewChannelName('');
             setNewChannelIsPrivate(false);
             setNewChannelRoles(['admin', 'employee', 'sales']);
+            setNewChannelUsers([]);
+            setNewChannelUserInput('');
             triggerToast(`Channel #${formattedName} created!`);
             fetchChannels();
             setActiveChannel(formattedName);
@@ -1273,8 +1293,8 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                     id={`msg-${msg.id}`}
                                     key={`msg-${msg.id}`}
                                     className={`relative flex gap-3.5 group p-2.5 rounded-2xl border transition-all duration-500 ${isHighlighted
-                                            ? 'bg-amber-100/90 border-amber-300 ring-2 ring-amber-400/80 shadow-md scale-[1.01]'
-                                            : 'hover:bg-slate-50/50 border-transparent'
+                                        ? 'bg-amber-100/90 border-amber-300 ring-2 ring-amber-400/80 shadow-md scale-[1.01]'
+                                        : 'hover:bg-slate-50/50 border-transparent'
                                         }`}
                                 >
                                     <div className="absolute right-4 -top-3 hidden group-hover:flex items-center bg-white border border-slate-200 shadow-md rounded-xl p-1 gap-1 z-10 transition-all">
@@ -1752,6 +1772,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                 </div>
             )}
 
+            {/* CREATE CHANNEL MODAL */}
             {isChannelModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl relative font-sans">
@@ -1789,36 +1810,89 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                         onChange={(e) => setNewChannelIsPrivate(e.target.checked)}
                                         className="rounded text-blue-600 focus:ring-0 cursor-pointer"
                                     />
-                                    <span>Private Channel (Role-Locked)</span>
+                                    <span>Private Channel (Role or Member-Locked)</span>
                                 </label>
                                 <p className="text-[11px] text-slate-500">Only members with selected roles or explicit invitations can view or enter this channel.</p>
                             </div>
+
                             {newChannelIsPrivate && (
-                                <div>
-                                    <label className="block font-bold text-slate-600 uppercase mb-1.5">Allowed Access Roles</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {['admin', 'employee', 'sales'].map((role) => (
+                                <div className="space-y-3 pt-1">
+                                    <div>
+                                        <label className="block font-bold text-slate-600 uppercase mb-1.5">Allowed Access Roles</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {['admin', 'employee', 'sales'].map((role) => (
+                                                <button
+                                                    key={role}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (newChannelRoles.includes(role)) {
+                                                            setNewChannelRoles(newChannelRoles.filter((r) => r !== role));
+                                                        } else {
+                                                            setNewChannelRoles([...newChannelRoles, role]);
+                                                        }
+                                                    }}
+                                                    className={`py-2 px-2 rounded-xl border font-bold capitalize transition cursor-pointer text-center ${newChannelRoles.includes(role)
+                                                        ? 'bg-blue-50 text-blue-600 border-blue-300'
+                                                        : 'bg-white text-slate-500 border-slate-200'
+                                                        }`}
+                                                >
+                                                    {role}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* SPECIFIC INVITED MEMBERS BAR */}
+                                    <div>
+                                        <label className="block font-bold text-slate-600 uppercase mb-1.5">Specific Invited Members</label>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter username or email..."
+                                                    value={newChannelUserInput}
+                                                    onChange={(e) => setNewChannelUserInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddNewChannelUser(e);
+                                                        }
+                                                    }}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                />
+                                                <UserPlus className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                            </div>
                                             <button
-                                                key={role}
                                                 type="button"
-                                                onClick={() => {
-                                                    if (newChannelRoles.includes(role)) {
-                                                        setNewChannelRoles(newChannelRoles.filter((r) => r !== role));
-                                                    } else {
-                                                        setNewChannelRoles([...newChannelRoles, role]);
-                                                    }
-                                                }}
-                                                className={`py-2 px-2 rounded-xl border font-bold capitalize transition cursor-pointer text-center ${newChannelRoles.includes(role)
-                                                    ? 'bg-blue-50 text-blue-600 border-blue-300'
-                                                    : 'bg-white text-slate-500 border-slate-200'
-                                                    }`}
+                                                onClick={handleAddNewChannelUser}
+                                                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
                                             >
-                                                {role}
+                                                Add
                                             </button>
-                                        ))}
+                                        </div>
+                                        {newChannelUsers.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 pt-1">
+                                                {newChannelUsers.map((member) => (
+                                                    <span
+                                                        key={member}
+                                                        className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                                                    >
+                                                        {member}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveNewChannelUser(member)}
+                                                            className="hover:text-rose-600 transition cursor-pointer"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
+
                             <div className="pt-2 flex gap-2">
                                 <button
                                     type="button"

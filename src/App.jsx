@@ -17,6 +17,7 @@ import FormsBuilder from './components/FormsBuilder';
 import OKRsGoals from './components/OKRsGoals';
 import AICopilot from './components/AICopilot';
 import UnifiedInbox from './components/UnifiedInbox';
+import TeamDirectory from './components/TeamDirectory';
 import Sidebar from './components/Sidebar';
 import ToastContainer, { toast } from './components/ToastContainer';
 import NotificationsPopover from './components/NotificationsPopover';
@@ -679,6 +680,20 @@ function Dashboard({ session }) {
               workspaceId={activeOrgId}
               currentUser={{ name: userEmail }}
               userRole={userRole}
+            />
+          )}
+
+          {activeTab === 'directory' && userRole !== 'client' && (
+            <TeamDirectory
+              workspaceId={activeOrgId}
+              currentUser={{
+                id: session?.user?.id,
+                name: userEmail,
+                role: userRole
+              }}
+              onNavigateToDm={() => {
+                setActiveTab('chat');
+              }}
             />
           )}
 

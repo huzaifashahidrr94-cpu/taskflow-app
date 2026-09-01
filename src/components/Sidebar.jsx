@@ -19,6 +19,7 @@ import {
     MessageSquare,
     Activity,
     UserPlus,
+    Users,
     LogOut
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ export default function Sidebar({
     const myName = (currentUser?.fullName || currentUser?.name || '').toLowerCase();
     const userEmail = currentUser?.name || 'User';
     const userInitial = (userEmail[0] || 'U').toUpperCase();
+    const normalizedRole = (userRole || 'employee').toLowerCase();
 
     useEffect(() => {
         if (!workspaceId) return;
@@ -109,43 +111,44 @@ export default function Sidebar({
         }
     };
 
-    // Prioritized and categorized navigation structure
+    // Role-based visibility matrix structure
     const navSections = [
         {
             title: 'DAILY WORK',
             items: [
-                { id: 'inbox', label: 'Unified Inbox', icon: Inbox, badge: counts.inbox, badgeColor: 'bg-purple-600' },
-                { id: 'tasks', label: 'Company Tasks', icon: LayoutGrid, badge: counts.tasks, badgeColor: 'bg-blue-600' },
-                { id: 'chat', label: 'Team Chat', icon: MessageSquare },
-                { id: 'copilot', label: 'AI Copilot', icon: Sparkles },
+                { id: 'inbox', label: 'Unified Inbox', icon: Inbox, badge: counts.inbox, badgeColor: 'bg-purple-600', allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'tasks', label: 'Company Tasks', icon: LayoutGrid, badge: counts.tasks, badgeColor: 'bg-blue-600', allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'chat', label: 'Team Chat', icon: MessageSquare, allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'directory', label: 'People Directory', icon: Users, allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'copilot', label: 'AI Copilot', icon: Sparkles, allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
             ]
         },
         {
             title: 'SALES & CLIENTS',
             items: [
-                { id: 'sales', label: 'Sales Pipeline', icon: TrendingUp, roleRestricted: true },
-                { id: 'contacts', label: 'Contacts & Leads', icon: Contact },
-                { id: 'helpdesk', label: 'Helpdesk & Support', icon: Ticket, badge: counts.tickets, badgeColor: 'bg-amber-500' },
-                { id: 'invoicing', label: 'Invoicing & Billing', icon: DollarSign },
+                { id: 'sales', label: 'Sales Pipeline', icon: TrendingUp, allowedRoles: ['admin', 'sales'] },
+                { id: 'contacts', label: 'Contacts & Leads', icon: Contact, allowedRoles: ['admin', 'sales'] },
+                { id: 'helpdesk', label: 'Helpdesk & Support', icon: Ticket, badge: counts.tickets, badgeColor: 'bg-amber-500', allowedRoles: ['admin', 'employee', 'sales', 'client'] },
+                { id: 'invoicing', label: 'Invoicing & Billing', icon: DollarSign, allowedRoles: ['admin', 'sales', 'client'] },
             ]
         },
         {
             title: 'MANAGEMENT',
             items: [
-                { id: 'matrix', label: 'Eisenhower Matrix', icon: Flame },
-                { id: 'okrs', label: 'OKRs & Goals', icon: Target },
-                { id: 'team', label: 'Team & Workload', icon: Activity },
-                { id: 'analytics', label: 'Analytics & Reports', icon: BarChart3 },
+                { id: 'matrix', label: 'Eisenhower Matrix', icon: Flame, allowedRoles: ['admin', 'employee'] },
+                { id: 'okrs', label: 'OKRs & Goals', icon: Target, allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'team', label: 'Team & Workload', icon: Activity, allowedRoles: ['admin', 'hr'] },
+                { id: 'analytics', label: 'Analytics & Reports', icon: BarChart3, allowedRoles: ['admin', 'hr', 'sales'] },
             ]
         },
         {
             title: 'OPERATIONS',
             items: [
-                { id: 'docs', label: 'Docs & Wiki', icon: BookOpen },
-                { id: 'timetracking', label: 'Time Tracking', icon: Clock },
-                { id: 'hr', label: 'HR & PTO', icon: UserCheck, badge: counts.pto, badgeColor: 'bg-rose-500' },
-                { id: 'forms', label: 'Public Forms Builder', icon: FormInput },
-                { id: 'automations', label: 'Visual Automations', icon: Zap },
+                { id: 'docs', label: 'Docs & Wiki', icon: BookOpen, allowedRoles: ['admin', 'employee', 'hr', 'sales', 'client'] },
+                { id: 'timetracking', label: 'Time Tracking', icon: Clock, allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'hr', label: 'HR & PTO', icon: UserCheck, badge: counts.pto, badgeColor: 'bg-rose-500', allowedRoles: ['admin', 'employee', 'hr', 'sales'] },
+                { id: 'forms', label: 'Public Forms Builder', icon: FormInput, allowedRoles: ['admin', 'sales'] },
+                { id: 'automations', label: 'Visual Automations', icon: Zap, allowedRoles: ['admin'] },
             ]
         }
     ];
@@ -162,47 +165,52 @@ export default function Sidebar({
                 </div>
 
                 <nav className="space-y-5">
-                    {navSections.map((section, idx) => (
-                        <div key={idx} className="space-y-1">
-                            <h4 className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
-                                {section.title}
-                            </h4>
-                            {section.items.map((item) => {
-                                if (item.roleRestricted && userRole !== 'admin' && userRole !== 'sales') {
-                                    return null;
-                                }
-                                const Icon = item.icon;
-                                const isActive = activeTab === item.id;
+                    {navSections.map((section, idx) => {
+                        const visibleItems = section.items.filter(item =>
+                            item.allowedRoles.includes(normalizedRole)
+                        );
 
-                                return (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => setActiveTab(item.id)}
-                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${isActive
-                                            ? 'bg-blue-50 text-blue-600 font-bold'
-                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2.5 truncate">
-                                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                                            <span className="truncate">{item.label}</span>
-                                        </div>
+                        if (visibleItems.length === 0) return null;
 
-                                        {item.badge > 0 && (
-                                            <span className={`px-2 py-0.5 text-[10px] font-extrabold text-white rounded-full tabular-nums shrink-0 shadow-2xs ${item.badgeColor || 'bg-blue-600'}`}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ))}
+                        return (
+                            <div key={idx} className="space-y-1">
+                                <h4 className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">
+                                    {section.title}
+                                </h4>
+                                {visibleItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = activeTab === item.id;
+
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setActiveTab(item.id)}
+                                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${isActive
+                                                ? 'bg-blue-50 text-blue-600 font-bold'
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2.5 truncate">
+                                                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                <span className="truncate">{item.label}</span>
+                                            </div>
+
+                                            {item.badge > 0 && (
+                                                <span className={`px-2 py-0.5 text-[10px] font-extrabold text-white rounded-full tabular-nums shrink-0 shadow-2xs ${item.badgeColor || 'bg-blue-600'}`}>
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
                 </nav>
             </div>
 
             <div className="space-y-2 mt-auto pt-6 border-t border-slate-100">
-                {userRole === 'admin' && (
+                {normalizedRole === 'admin' && (
                     <button
                         onClick={onOpenInvite}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 hover:bg-blue-100/80 text-xs font-bold transition cursor-pointer"
