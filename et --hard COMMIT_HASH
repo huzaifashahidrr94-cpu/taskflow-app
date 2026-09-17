@@ -1,0 +1,10 @@
+[33m6c3226d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m feat: add member channel invites, team directory, and role-based sidebar access
+[33m31d1439[m Workgrid updates
+[33m7998f21[m Fix channel isolation, in-place mentions, unsent text retention, and activity feed sync
+[33m7afd74b[m Fix workspace ID lookup and prevent silent send button exits in TeamChat
+[33mde9b922[m Ensure all chat messages sync to activity_feed and fix messages persistence on reload
+[33m3b81963[m Fix messages and activity feed UUID schemas for chat sending
+[33mf90262b[m Integrate desktop OS push notifications into TeamChat real-time subscription
+[33m4b2aa25[m Integrate NotificationsPopover bell into main header in App.jsx
+[33ma2a4543[m Add drag and drop functionality directly to existing Eisenhower matrix component
+[33maa27a5f[m Ensure valid UUID generation for workspace fallback during task creation
