@@ -74,7 +74,16 @@ export default function DealsKanban({ workspaceId }) {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setDeals(data || []);
+            // Normalise legacy stage spellings (older app versions stored
+            // 'Lead In' / 'lead' etc.) so every deal lands in a kanban
+            // column instead of vanishing from the board while still
+            // counting in the pipeline totals.
+            const normalizeStage = (s) => {
+                const k = (s || '').toLowerCase().trim();
+                if (k === 'lead in' || k === 'lead') return 'lead';
+                return STAGES.some(x => x.id === k) ? k : 'lead';
+            };
+            setDeals((data || []).map(d => ({ ...d, stage: normalizeStage(d.stage) })));
         } catch (err) {
             console.error('Error fetching deals:', err.message);
         } finally {
