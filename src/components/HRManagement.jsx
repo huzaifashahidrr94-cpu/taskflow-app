@@ -167,7 +167,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
     if (loading) {
         return (
             <div className="p-12 text-center text-[#71717A] flex flex-col items-center justify-center font-sans bg-[#FAFAF9]">
-                <Loader2 className="w-8 h-8 animate-spin text-[#4F46E5] mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#2563EB] mb-2" />
                 <p className="text-xs font-semibold">Loading HR & PTO records...</p>
             </div>
         );
@@ -180,9 +180,9 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold text-[#18181B] tracking-tight flex items-center gap-2.5">
-                            <UserCheck className="w-6 h-6 text-[#4F46E5]" /> HR & Time-Off Portal
+                            <UserCheck className="w-6 h-6 text-[#2563EB]" /> HR & Time-Off Portal
                         </h1>
-                        <span className="bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2 py-0.5">
+                        <span className="bg-[#EEF2FF] text-[#2563EB] border border-[#C7D2FE] rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2 py-0.5">
                             {isManager ? 'HR Manager View' : 'Employee Portal'}
                         </span>
                     </div>
@@ -196,7 +196,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsLeaveModalOpen(true)}
-                        className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-[8px] px-4 py-2.5 text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-sm"
+                        className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-[8px] px-4 py-2.5 text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-sm"
                     >
                         <Calendar className="w-4 h-4" /> Request Leave / PTO
                     </button>
@@ -206,7 +206,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                             onClick={() => setIsAddEmployeeModalOpen(true)}
                             className="border border-[#E4E4E7] bg-white hover:bg-[#FAFAF9] text-[#18181B] font-semibold px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                         >
-                            <Plus className="w-4 h-4 text-[#4F46E5]" /> Add Staff Profile
+                            <Plus className="w-4 h-4 text-[#2563EB]" /> Add Staff Profile
                         </button>
                     )}
                 </div>
@@ -220,7 +220,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#71717A]">Total Staff</p>
                             <p className="text-2xl font-extrabold text-[#18181B] mt-1 tabular-nums">{employees.length}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-[8px] bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center font-bold">
+                        <div className="w-10 h-10 rounded-[8px] bg-[#EEF2FF] text-[#2563EB] flex items-center justify-center font-bold">
                             <Users className="w-5 h-5" />
                         </div>
                     </div>
@@ -262,7 +262,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#71717A]">My Leave Requests</p>
                             <p className="text-2xl font-extrabold text-[#18181B] mt-1 tabular-nums">{myLeaves.length}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-[8px] bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center font-bold">
+                        <div className="w-10 h-10 rounded-[8px] bg-[#EEF2FF] text-[#2563EB] flex items-center justify-center font-bold">
                             <Calendar className="w-5 h-5" />
                         </div>
                     </div>
@@ -299,7 +299,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                     <button
                         onClick={() => setActiveSubTab('directory')}
                         className={`px-4 py-2 rounded-[8px] text-xs font-semibold transition cursor-pointer ${activeSubTab === 'directory'
-                            ? 'bg-[#4F46E5] text-white shadow-sm'
+                            ? 'bg-[#2563EB] text-white shadow-sm'
                             : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5]'
                             }`}
                     >
@@ -310,7 +310,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                 <button
                     onClick={() => setActiveSubTab('leaves')}
                     className={`px-4 py-2 rounded-[8px] text-xs font-semibold transition cursor-pointer relative ${activeSubTab === 'leaves' || activeSubTab === 'my_leaves'
-                        ? 'bg-[#4F46E5] text-white shadow-sm'
+                        ? 'bg-[#2563EB] text-white shadow-sm'
                         : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5]'
                         }`}
                 >
@@ -347,7 +347,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                 {employees.map((emp) => (
                                     <tr key={emp.id} className="hover:bg-[#FAFAF9] transition">
                                         <td className="p-3.5 pl-6 font-semibold text-[#18181B] flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-[#EEF2FF] text-[#4F46E5] font-bold flex items-center justify-center text-xs">
+                                            <div className="w-8 h-8 rounded-full bg-[#EEF2FF] text-[#2563EB] font-bold flex items-center justify-center text-xs">
                                                 {emp.name[0]?.toUpperCase()}
                                             </div>
                                             <span>{emp.name}</span>
@@ -421,7 +421,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
 
                                         <p className="text-xs text-[#71717A] italic">"{lr.reason}"</p>
                                         <p className="text-[11px] text-[#71717A] tabular-nums flex items-center gap-1">
-                                            <Calendar className="w-3 h-3 text-[#4F46E5]" /> {lr.startDate} to {lr.endDate}
+                                            <Calendar className="w-3 h-3 text-[#2563EB]" /> {lr.startDate} to {lr.endDate}
                                         </p>
                                     </div>
 
@@ -454,7 +454,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                     <div className="bg-white border border-[#E4E4E7] rounded-[12px] w-full max-w-md p-6 shadow-2xl relative font-sans">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base font-bold text-[#18181B] flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-[#4F46E5]" /> Request Time-Off (PTO)
+                                <Calendar className="w-5 h-5 text-[#2563EB]" /> Request Time-Off (PTO)
                             </h3>
                             <button onClick={() => setIsLeaveModalOpen(false)} className="text-[#71717A] hover:text-[#18181B] cursor-pointer">
                                 <X className="w-5 h-5" />
@@ -477,7 +477,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                 <select
                                     value={leaveType}
                                     onChange={(e) => setLeaveType(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium outline-none focus:ring-2 focus:ring-[#4F46E5]/20 cursor-pointer"
+                                    className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium outline-none focus:ring-2 focus:ring-[#2563EB]/20 cursor-pointer"
                                 >
                                     <option value="vacation">Paid Vacation</option>
                                     <option value="sick">Medical / Sick Leave</option>
@@ -493,7 +493,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                         required
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                     />
                                 </div>
                                 <div>
@@ -503,7 +503,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                         required
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                     />
                                 </div>
                             </div>
@@ -515,7 +515,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                     placeholder="e.g., Doctor Appointment or Vacation Trip"
                                     value={leaveReason}
                                     onChange={(e) => setLeaveReason(e.target.value)}
-                                    className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                    className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                 />
                             </div>
 
@@ -529,7 +529,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-[8px] text-xs flex-1 shadow-sm cursor-pointer transition"
+                                    className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-[8px] text-xs flex-1 shadow-sm cursor-pointer transition"
                                 >
                                     Submit to HR
                                 </button>
@@ -545,7 +545,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                     <div className="bg-white border border-[#E4E4E7] rounded-[12px] w-full max-w-md p-6 shadow-2xl relative font-sans">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base font-bold text-[#18181B] flex items-center gap-2">
-                                <UserCheck className="w-5 h-5 text-[#4F46E5]" /> Create Staff HR Profile
+                                <UserCheck className="w-5 h-5 text-[#2563EB]" /> Create Staff HR Profile
                             </h3>
                             <button onClick={() => setIsAddEmployeeModalOpen(false)} className="text-[#71717A] hover:text-[#18181B] cursor-pointer">
                                 <X className="w-5 h-5" />
@@ -561,7 +561,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                     placeholder="e.g., Alex Mercer"
                                     value={empName}
                                     onChange={(e) => setEmpName(e.target.value)}
-                                    className="w-full px-3.5 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                    className="w-full px-3.5 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                 />
                             </div>
 
@@ -573,7 +573,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                         required
                                         value={empDept}
                                         onChange={(e) => setEmpDept(e.target.value)}
-                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                     />
                                 </div>
                                 <div>
@@ -583,7 +583,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                         required
                                         value={empSalary}
                                         onChange={(e) => setEmpSalary(e.target.value)}
-                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                        className="w-full px-3 py-2 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                                     />
                                 </div>
                             </div>
@@ -598,7 +598,7 @@ export default function HRManagement({ workspaceId, userRole, currentUser }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-[8px] flex-1 shadow-sm cursor-pointer transition"
+                                    className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-[8px] flex-1 shadow-sm cursor-pointer transition"
                                 >
                                     Save Profile
                                 </button>

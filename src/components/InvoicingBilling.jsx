@@ -18,6 +18,7 @@ import {
 export default function InvoicingBilling({ workspaceId, currentUser }) {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,42 +50,15 @@ export default function InvoicingBilling({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackInvoices = [
-                {
-                    id: 'INV-1001',
-                    client_name: 'Acme Corp',
-                    client_email: 'billing@acme.com',
-                    amount: 4500,
-                    status: 'paid',
-                    due_date: '2026-08-15',
-                    created_at: '2026-08-01',
-                    description: 'Quarterly CRM Development & Custom API Integration'
-                },
-                {
-                    id: 'INV-1002',
-                    client_name: 'Starlight Media',
-                    client_email: 'accounts@starlight.io',
-                    amount: 2800,
-                    status: 'pending',
-                    due_date: '2026-09-10',
-                    created_at: '2026-08-20',
-                    description: 'Brand Redesign & Marketing Pipeline Setup'
-                },
-                {
-                    id: 'INV-1003',
-                    client_name: 'Nexus Ventures',
-                    client_email: 'finance@nexus.com',
-                    amount: 6200,
-                    status: 'overdue',
-                    due_date: '2026-08-01',
-                    created_at: '2026-07-15',
-                    description: 'Enterprise Retainer - July 2026'
-                }
-            ];
-
-            setInvoices(data && data.length > 0 ? data : fallbackInvoices);
+            if (error) {
+                // Surface the real database error instead of
+                // hiding it behind demo rows.
+                setFetchError(`Could not load invoices: ${error.message}`);
+                setInvoices([]);
+            } else {
+                setFetchError('');
+                setInvoices(data || []);
+            }
         } catch (err) {
             console.error('Error fetching invoices:', err.message);
         } finally {
@@ -161,6 +135,9 @@ export default function InvoicingBilling({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

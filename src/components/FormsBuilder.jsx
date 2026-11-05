@@ -20,6 +20,7 @@ import {
 export default function FormsBuilder({ workspaceId, currentUser }) {
     const [forms, setForms] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [previewForm, setPreviewForm] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
@@ -57,28 +58,15 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackForms = [
-                {
-                    id: 'form-101',
-                    title: '🌐 Website Lead Qualification Form',
-                    description: 'Embedded on landing page to capture high-intent enterprise prospects.',
-                    target_type: 'lead',
-                    submissions_count: 24,
-                    created_at: '2026-08-10'
-                },
-                {
-                    id: 'form-102',
-                    title: '🛠️ Client Feature Request & Bug Report',
-                    description: 'Public intake form for existing clients to submit support tickets.',
-                    target_type: 'ticket',
-                    submissions_count: 11,
-                    created_at: '2026-08-18'
-                }
-            ];
-
-            setForms(data && data.length > 0 ? data : fallbackForms);
+            if (error) {
+                // Surface the real database error instead of
+                // hiding it behind demo rows.
+                setFetchError(`Could not load forms: ${error.message}`);
+                setForms([]);
+            } else {
+                setFetchError('');
+                setForms(data || []);
+            }
         } catch (err) {
             console.error('Error fetching forms:', err.message);
         } finally {
@@ -167,6 +155,9 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -186,7 +177,13 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {forms.map((f) => (
+                {forms.length === 0 ? (
+                    <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-slate-400">
+                        <p className="text-xs font-bold text-slate-900">No forms yet — create one</p>
+                        <p className="text-xs mt-1">Build your first intake form to start collecting leads.</p>
+                    </div>
+                ) : (
+                forms.map((f) => (
                     <div
                         key={f.id}
                         className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition"
@@ -236,7 +233,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                             </button>
                         </div>
                     </div>
-                ))}
+                )))}
             </div>
 
             {isModalOpen && (

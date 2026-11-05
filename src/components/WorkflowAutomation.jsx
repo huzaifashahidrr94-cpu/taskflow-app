@@ -33,6 +33,7 @@ const ACTION_OPTIONS = [
 export default function WorkflowAutomation({ workspaceId }) {
     const [workflows, setWorkflows] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // New Workflow Form
@@ -59,29 +60,13 @@ export default function WorkflowAutomation({ workspaceId }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            // Fallback demo workflows if table is fresh
-            setWorkflows(
-                data || [
-                    {
-                        id: 'wf-1',
-                        title: 'Auto-Notify Team on Big Sales Win',
-                        trigger: 'deal_won',
-                        action: 'send_chat_alert',
-                        is_active: true,
-                        runs_count: 14
-                    },
-                    {
-                        id: 'wf-2',
-                        title: 'Create Client Onboarding Task',
-                        trigger: 'deal_won',
-                        action: 'create_onboarding_task',
-                        is_active: true,
-                        runs_count: 8
-                    }
-                ]
-            );
+            if (error) {
+                setFetchError(`Could not load workflows: ${error.message}`);
+                setWorkflows([]);
+            } else {
+                setFetchError('');
+                setWorkflows(data || []);
+            }
         } catch (err) {
             console.error('Error fetching workflows:', err.message);
         } finally {
@@ -149,6 +134,9 @@ export default function WorkflowAutomation({ workspaceId }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -169,6 +157,12 @@ export default function WorkflowAutomation({ workspaceId }) {
             </div>
 
             {/* Rules List */}
+            {workflows.length === 0 && (
+                <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-slate-400">
+                    <p className="text-xs font-bold text-slate-900">No automations yet — create one</p>
+                    <p className="text-xs mt-1">Set up your first rule to automate deals, chat alerts, and task handoffs.</p>
+                </div>
+            )}
             <div className="space-y-4">
                 {workflows.map((wf) => {
                     const trigObj = TRIGGER_OPTIONS.find((t) => t.id === wf.trigger) || TRIGGER_OPTIONS[0];

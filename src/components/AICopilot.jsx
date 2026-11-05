@@ -69,12 +69,9 @@ export default function AICopilot({ workspaceId, currentUser, userRole = 'employ
                     : Promise.resolve({ data: [] })
             ]);
 
-            const rawTasks = tasksRes.data || [
-                { title: 'Update landing page hero copy', status: 'in_progress', assignee: userName },
-                { title: 'Prepare Q3 sprint documentation', status: 'todo', assignee: userName },
-                { title: 'Fix PDF invoice printing issue', status: 'todo', assignee: 'Alex' },
-                { title: 'Review Figma wireframes', status: 'completed', assignee: 'Sarah' }
-            ];
+            // No fake tasks: if the query fails, the copilot simply
+            // has no tasks to reason about instead of inventing Alex/Sarah's.
+            const rawTasks = tasksRes.data || [];
 
             // FILTER FOR EMPLOYEES: Only keep tasks assigned to THIS current user
             const filteredTasks = isAdmin
@@ -83,10 +80,7 @@ export default function AICopilot({ workspaceId, currentUser, userRole = 'employ
                     t.assignee && t.assignee.toLowerCase().includes(userName.toLowerCase())
                 );
 
-            const rawTickets = ticketsRes.data || [
-                { subject: 'Need access to API keys', priority: 'medium', status: 'open', assignee: userName },
-                { subject: 'Billing error on monthly tier', priority: 'high', status: 'open', assignee: 'Finance Team' }
-            ];
+            const rawTickets = ticketsRes.data || [];
 
             const filteredTickets = isAdmin
                 ? rawTickets

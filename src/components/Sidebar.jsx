@@ -71,6 +71,7 @@ export default function Sidebar({
             const { data: inboxData } = await supabase
                 .from('activity_feed')
                 .select('id, read')
+                .eq('workspace_id', workspaceId)
                 .eq('read', false);
             const inboxCount = inboxData ? inboxData.length : 0;
 
@@ -88,6 +89,7 @@ export default function Sidebar({
             const { data: ticketData } = await supabase
                 .from('tickets')
                 .select('id, status')
+                .eq('workspace_id', workspaceId)
                 .eq('status', 'open');
             const ticketsCount = ticketData ? ticketData.length : 0;
 

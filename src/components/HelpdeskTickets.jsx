@@ -18,6 +18,7 @@ import {
 export default function HelpdeskTickets({ workspaceId, currentUser }) {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,48 +50,15 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackTickets = [
-                {
-                    id: 'TICK-101',
-                    subject: 'Unable to export monthly invoice PDF',
-                    client_name: 'Acme Corp',
-                    category: 'Billing',
-                    priority: 'high',
-                    status: 'open',
-                    assignee: currentUser?.name || 'Support Agent',
-                    description: 'Client reported an HTTP 500 error when clicking the print PDF button in their portal.',
-                    created_at: '2026-08-28',
-                    sla_due: '2026-08-29'
-                },
-                {
-                    id: 'TICK-102',
-                    subject: 'Custom webhook integration payload failing',
-                    client_name: 'Starlight Media',
-                    category: 'Technical Issue',
-                    priority: 'urgent',
-                    status: 'in_progress',
-                    assignee: currentUser?.name || 'Support Agent',
-                    description: 'Automated deal triggers are not firing when deals enter negotiation stage.',
-                    created_at: '2026-08-27',
-                    sla_due: '2026-08-28'
-                },
-                {
-                    id: 'TICK-103',
-                    subject: 'Request to add 5 new user seats',
-                    client_name: 'Nexus Ventures',
-                    category: 'Account Request',
-                    priority: 'low',
-                    status: 'resolved',
-                    assignee: 'Unassigned',
-                    description: 'Client needs seat licenses expanded for their sales team.',
-                    created_at: '2026-08-25',
-                    sla_due: '2026-08-27'
-                }
-            ];
-
-            setTickets(data && data.length > 0 ? data : fallbackTickets);
+            if (error) {
+                // Surface the real database error instead of
+                // hiding it behind demo rows.
+                setFetchError(`Could not load tickets: ${error.message}`);
+                setTickets([]);
+            } else {
+                setFetchError('');
+                setTickets(data || []);
+            }
         } catch (err) {
             console.error('Error fetching tickets:', err.message);
         } finally {
@@ -170,6 +138,9 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

@@ -17,6 +17,7 @@ import {
 export default function TimeTracking({ workspaceId, currentUser }) {
     const [timeLogs, setTimeLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [timerTaskTitle, setTimerTaskTitle] = useState('');
@@ -55,30 +56,15 @@ export default function TimeTracking({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackLogs = [
-                {
-                    id: 'log-1',
-                    task_title: 'API Integration & Webhook Sync',
-                    user_name: currentUser?.name || 'Jane Doe',
-                    duration_minutes: 135,
-                    hourly_rate: 65,
-                    is_billable: true,
-                    date: '2026-08-27'
-                },
-                {
-                    id: 'log-2',
-                    task_title: 'Weekly Sales Pipeline Review',
-                    user_name: currentUser?.name || 'Jane Doe',
-                    duration_minutes: 45,
-                    hourly_rate: 45,
-                    is_billable: false,
-                    date: '2026-08-28'
-                }
-            ];
-
-            setTimeLogs(data && data.length > 0 ? data : fallbackLogs);
+            if (error) {
+                // Surface the real database error instead of
+                // hiding it behind demo rows.
+                setFetchError(`Could not load timeLogs: ${error.message}`);
+                setTimeLogs([]);
+            } else {
+                setFetchError('');
+                setTimeLogs(data || []);
+            }
         } catch (err) {
             console.error('Error fetching time logs:', err.message);
         } finally {
@@ -155,6 +141,9 @@ export default function TimeTracking({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -270,6 +259,9 @@ export default function TimeTracking({ workspaceId, currentUser }) {
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                     <h3 className="font-extrabold text-slate-900 text-sm">Recent Timesheet Entries</h3>
                     <span className="text-xs text-slate-400 font-semibold">{timeLogs.length} Records</span>
+                    {timeLogs.length === 0 && (
+                        <span className="text-xs text-slate-400 font-semibold">No time logged yet — start the timer above</span>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto">

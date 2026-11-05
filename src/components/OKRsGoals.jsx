@@ -16,6 +16,7 @@ import {
 export default function OKRsGoals({ workspaceId, currentUser }) {
     const [objectives, setObjectives] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [selectedQuarter, setSelectedQuarter] = useState('Q3 2026');
     const [selectedDepartment, setSelectedDepartment] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,32 +50,15 @@ export default function OKRsGoals({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackOKRs = [
-                {
-                    id: 'okr-1',
-                    title: '🚀 Scale Q3 Recurring Revenue to $50k ARR',
-                    quarter: 'Q3 2026',
-                    department: 'Sales & Growth',
-                    key_results: [
-                        { id: 'kr-1', title: 'Close 15 Enterprise CRM deals', current: 11, target: 15 },
-                        { id: 'kr-2', title: 'Reduce churn rate to under 2%', current: 85, target: 100 }
-                    ]
-                },
-                {
-                    id: 'okr-2',
-                    title: '⚡ Elevate Platform Uptime & SLA Performance',
-                    quarter: 'Q3 2026',
-                    department: 'Engineering',
-                    key_results: [
-                        { id: 'kr-3', title: 'Maintain 99.9% API response uptime', current: 98, target: 100 },
-                        { id: 'kr-4', title: 'Resolve 100% of high-priority tickets within 24h', current: 90, target: 100 }
-                    ]
-                }
-            ];
-
-            setObjectives(data && data.length > 0 ? data : fallbackOKRs);
+            if (error) {
+                // Surface the real database error instead of
+                // hiding it behind demo rows.
+                setFetchError(`Could not load objectives: ${error.message}`);
+                setObjectives([]);
+            } else {
+                setFetchError('');
+                setObjectives(data || []);
+            }
         } catch (err) {
             console.error('Error fetching OKRs:', err.message);
         } finally {
@@ -167,6 +151,9 @@ export default function OKRsGoals({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-8">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

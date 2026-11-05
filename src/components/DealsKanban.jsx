@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 const STAGES = [
-    { id: 'lead', name: 'Lead Qualified', color: 'border-[#4F46E5] text-[#4F46E5] bg-[#EEF2FF]' },
+    { id: 'lead', name: 'Lead Qualified', color: 'border-[#2563EB] text-[#2563EB] bg-[#EEF2FF]' },
     { id: 'proposal', name: 'Proposal Sent', color: 'border-amber-400 text-amber-700 bg-amber-50' },
     { id: 'negotiation', name: 'In Negotiation', color: 'border-blue-400 text-blue-700 bg-blue-50' },
     { id: 'won', name: 'Closed Won', color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
@@ -162,7 +162,7 @@ export default function DealsKanban({ workspaceId }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-[#18181B] tracking-tight flex items-center gap-2">
-                        <TrendingUp className="w-6 h-6 text-[#4F46E5]" /> Sales CRM Pipeline
+                        <TrendingUp className="w-6 h-6 text-[#2563EB]" /> Sales CRM Pipeline
                     </h1>
                     <p className="text-[#71717A] text-sm mt-0.5">Track deal stages, expected revenue, and launch dedicated chat war rooms.</p>
                 </div>
@@ -172,7 +172,7 @@ export default function DealsKanban({ workspaceId }) {
                         setSelectedDeal(null);
                         setIsModalOpen(true);
                     }}
-                    className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-4 py-2.5 rounded-[8px] text-xs transition flex items-center gap-2 shadow-sm cursor-pointer"
+                    className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold px-4 py-2.5 rounded-[8px] text-xs transition flex items-center gap-2 shadow-sm cursor-pointer"
                 >
                     <Plus className="w-4 h-4" /> Add New Deal
                 </button>
@@ -192,7 +192,7 @@ export default function DealsKanban({ workspaceId }) {
 
                 <div className="bg-white p-5 rounded-[12px] border border-[#E4E4E7] shadow-sm">
                     <span className="text-[11px] font-semibold text-[#71717A] uppercase tracking-[0.05em]">Win Conversion Rate</span>
-                    <p className="text-3xl font-extrabold text-[#4F46E5] mt-2 tabular-nums">{winRate}%</p>
+                    <p className="text-3xl font-extrabold text-[#2563EB] mt-2 tabular-nums">{winRate}%</p>
                 </div>
             </div>
 
@@ -222,7 +222,7 @@ export default function DealsKanban({ workspaceId }) {
                                         className="bg-[#FAFAF9] p-4 rounded-[12px] border border-[#E4E4E7] hover:shadow-md transition cursor-pointer group"
                                     >
                                         <div className="flex items-start justify-between mb-2">
-                                            <h4 className="font-bold text-[#18181B] text-xs group-hover:text-[#4F46E5] transition">{deal.title}</h4>
+                                            <h4 className="font-bold text-[#18181B] text-xs group-hover:text-[#2563EB] transition">{deal.title}</h4>
                                             <span className="font-extrabold text-emerald-600 text-xs shrink-0 tabular-nums">${Number(deal.value || 0).toLocaleString()}</span>
                                         </div>
 
@@ -249,7 +249,7 @@ export default function DealsKanban({ workspaceId }) {
                                                     e.stopPropagation();
                                                     handleLaunchWarRoom(deal);
                                                 }}
-                                                className="p-1 hover:bg-[#EEF2FF] text-[#4F46E5] rounded-[8px] transition cursor-pointer"
+                                                className="p-1 hover:bg-[#EEF2FF] text-[#2563EB] rounded-[8px] transition cursor-pointer"
                                                 title="Launch Chat War Room"
                                             >
                                                 <MessageSquare className="w-3.5 h-3.5" />
@@ -346,7 +346,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
             <div className="bg-white border border-[#E4E4E7] rounded-[12px] w-full max-w-md p-6 shadow-2xl relative">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-bold text-[#18181B] flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-[#4F46E5]" />
+                        <TrendingUp className="w-5 h-5 text-[#2563EB]" />
                         {deal ? 'Edit Deal Opportunity' : 'Add New Commercial Deal'}
                     </h3>
                     <button onClick={onClose} className="text-[#71717A] hover:text-[#18181B] cursor-pointer">
@@ -370,7 +370,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                             placeholder="e.g. Acme Corp Website Redesign"
                             value={title}
                             onChange={e => setTitle(e.target.value)}
-                            className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                            className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                         />
                     </div>
 
@@ -383,7 +383,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                                 placeholder="15000"
                                 value={value}
                                 onChange={e => setValue(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                             />
                         </div>
 
@@ -409,7 +409,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                                 placeholder="John Smith"
                                 value={contactName}
                                 onChange={e => setContactName(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                             />
                         </div>
 
@@ -419,7 +419,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                                 type="date"
                                 value={targetCloseDate}
                                 onChange={e => setTargetCloseDate(e.target.value)}
-                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+                                className="w-full px-3.5 py-2.5 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                             />
                         </div>
                     </div>
@@ -431,7 +431,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                             placeholder="Log requirements, key decision makers..."
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            className="w-full p-3 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 resize-none"
+                            className="w-full p-3 bg-[#FAFAF9] border border-[#E4E4E7] rounded-[8px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 resize-none"
                         />
                     </div>
 
@@ -439,7 +439,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                         <button
                             type="button"
                             onClick={() => onLaunchWarRoom(deal)}
-                            className="w-full py-2.5 px-4 bg-[#EEF2FF] border border-[#C7D2FE] text-[#4F46E5] font-extrabold rounded-[8px] text-xs flex items-center justify-center gap-2 hover:bg-[#E0E7FF] transition cursor-pointer"
+                            className="w-full py-2.5 px-4 bg-[#EEF2FF] border border-[#C7D2FE] text-[#2563EB] font-extrabold rounded-[8px] text-xs flex items-center justify-center gap-2 hover:bg-[#E0E7FF] transition cursor-pointer"
                         >
                             <MessageSquare className="w-4 h-4" /> Launch Chat War Room
                         </button>
@@ -465,7 +465,7 @@ function DealModal({ workspaceId, deal, onClose, onDelete, onLaunchWarRoom, onSu
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 py-2.5 px-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold rounded-[8px] text-xs flex justify-center items-center gap-2 transition cursor-pointer shadow-sm"
+                            className="flex-1 py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-[8px] text-xs flex justify-center items-center gap-2 transition cursor-pointer shadow-sm"
                         >
                             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                             {deal ? 'Update Deal' : 'Create Deal'}

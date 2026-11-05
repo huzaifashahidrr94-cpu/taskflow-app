@@ -110,8 +110,12 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
             .channel('activity_feed_realtime')
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'activity_feed' },
+                { event: 'INSERT', schema: 'public', table: 'activity_feed', filter: `workspace_id=eq.${workspaceId}` },
                 (payload) => {
+                    // Realtime inserts arrive only for this workspace now.
+                    // Foreign rows used to be prepended here and then vanish
+                    // on the next filtered refetch — that is why inbox items
+                    // appeared and disappeared between loads.
                     setActivities((prev) => [payload.new, ...prev]);
                     setSelectedActivity((prev) => prev || payload.new);
                 }
@@ -164,6 +168,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
             await supabase
                 .from('activity_feed')
                 .update({ read: true })
+                .eq('workspace_id', workspaceId)
                 .eq('read', false);
         } catch (err) {
             console.warn('Marked all read locally');
@@ -252,7 +257,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
         const targetName = selectedActivity?.sender || 'team';
         if (editorRef.current) {
             editorRef.current.focus();
-            const html = `<span style="color: #4f46e5; font-weight: 700; background-color: #eef2ff; padding: 2px 6px; border-radius: 6px;">@${targetName}</span>&nbsp;`;
+            const html = `<span style="color: #2563EB; font-weight: 700; background-color: #eef2ff; padding: 2px 6px; border-radius: 6px;">@${targetName}</span>&nbsp;`;
             document.execCommand('insertHTML', false, html);
             updateActiveFormats();
         }
@@ -722,7 +727,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
 
                                         <button
                                             type="submit"
-                                            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm transition"
+                                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm transition"
                                         >
                                             Send <Send className="w-3 h-3" />
                                         </button>

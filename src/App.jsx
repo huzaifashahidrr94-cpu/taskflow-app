@@ -130,32 +130,35 @@ function AuthView() {
 
         const userId = authData.user.id
 
-        try {
-          await supabase.from('profiles').upsert({ id: userId, full_name: fullName })
+        // Provisioning writes return { error } instead of throwing, so
+        // check each one — a failed org/profile write must not be
+        // reported as a successful signup.
+        const { error: profileError } = await supabase.from('profiles').upsert({ id: userId, full_name: fullName })
+        if (profileError) throw new Error(`Could not create your profile: ${profileError.message}`)
 
-          if (inviteOrgId) {
-            await supabase.from('organization_members').insert({
+        if (inviteOrgId) {
+          const { error: memberError } = await supabase.from('organization_members').insert({
+            user_id: userId,
+            organization_id: inviteOrgId,
+            role: 'employee'
+          })
+          if (memberError) throw new Error(`Could not join the invited workspace: ${memberError.message}`)
+        } else {
+          const { data: orgData, error: orgError } = await supabase
+            .from('organizations')
+            .insert({ name: companyName || 'My Workspace' })
+            .select()
+            .single()
+          if (orgError) throw new Error(`Could not create your workspace: ${orgError.message}`)
+
+          if (orgData) {
+            const { error: adminError } = await supabase.from('organization_members').insert({
               user_id: userId,
-              organization_id: inviteOrgId,
-              role: 'employee'
+              organization_id: orgData.id,
+              role: 'admin'
             })
-          } else {
-            const { data: orgData } = await supabase
-              .from('organizations')
-              .insert({ name: companyName || 'My Workspace' })
-              .select()
-              .single()
-
-            if (orgData) {
-              await supabase.from('organization_members').insert({
-                user_id: userId,
-                organization_id: orgData.id,
-                role: 'admin'
-              })
-            }
+            if (adminError) throw new Error(`Could not set you up as workspace admin: ${adminError.message}`)
           }
-        } catch (fallbackErr) {
-          console.warn('Organization provisioning note:', fallbackErr.message)
         }
 
         toast.success("Account created successfully!")
@@ -359,10 +362,16 @@ function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('inbox')
+  // Non-admin portal-view preview (local only, never written to the DB)
+  const [previewRole, setPreviewRole] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const activeOrg = organizations.find(o => o.id === activeOrgId)
-  const userRole = activeOrg?.role || 'admin'
+  const userRole = activeOrg?.role || 'employee'
+  // Portal-view preview for non-admins: only changes which sections are
+  // visible (staff vs client). Admin-only buttons, invites and role
+  // props still use the real userRole above.
+  const viewRole = (userRole !== 'admin' && previewRole) ? previewRole : userRole
   const userEmail = session?.user?.email?.split('@')[0] || 'User'
 
   // Global listener to switch tab to chat whenever a notification is clicked
@@ -490,33 +499,44 @@ function Dashboard({ session }) {
   }
 
   const updateTaskField = async (taskId, field, value) => {
+    const previousTasks = tasks
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, [field]: value } : t))
-    toast.info(`Task ${field} updated`)
     try {
-      await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ [field]: value })
         .eq('id', taskId)
+      if (error) throw error
+      toast.info(`Task ${field} updated`)
     } catch (err) {
+      // Supabase returns { error } instead of throwing: roll the
+      // optimistic change back so the UI never claims a failed save.
+      setTasks(previousTasks)
       console.error(`Error updating task ${field}`, err)
-      toast.error("Failed to sync task change")
+      toast.error("Failed to save task change — please try again")
     }
   }
 
   const deleteTask = async (taskId) => {
+    const previousTasks = tasks
     setTasks(prev => prev.filter(t => t.id !== taskId))
-    toast.info("Task removed")
     try {
-      await supabase
+      const { error } = await supabase
         .from('tasks')
         .delete()
         .eq('id', taskId)
+      if (error) throw error
+      toast.info("Task removed")
     } catch (err) {
+      setTasks(previousTasks)
       console.error("Error deleting task", err)
+      toast.error("Failed to delete task — please try again")
     }
   }
 
   const updateMemberRole = async (userId, newRole) => {
+    const previousMembers = teamMembers
+    const previousOrgs = organizations
     setTeamMembers(prev =>
       prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m)
     )
@@ -527,16 +547,19 @@ function Dashboard({ session }) {
       )
     }
 
-    toast.success(`Role updated to ${newRole}`)
-
     try {
-      await supabase
+      const { error } = await supabase
         .from('organization_members')
         .update({ role: newRole })
         .eq('organization_id', activeOrgId)
         .eq('user_id', userId)
+      if (error) throw error
+      toast.success(`Role updated to ${newRole}`)
     } catch (err) {
+      setTeamMembers(previousMembers)
+      setOrganizations(previousOrgs)
       console.error("Error updating role", err)
+      toast.error("Failed to update role — please try again")
     }
   }
 
@@ -638,8 +661,18 @@ function Dashboard({ session }) {
               <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span className="text-slate-500 font-medium hidden md:inline">Portal View:</span>
               <select
-                value={userRole || 'admin'}
-                onChange={(e) => updateMemberRole(session?.user?.id, e.target.value)}
+                value={viewRole || 'employee'}
+                onChange={(e) => {
+                  // Only an admin may change roles in the database.
+                  // Anyone else just previews that portal view locally —
+                  // this must never promote a non-admin to admin.
+                  if (userRole === 'admin') {
+                    updateMemberRole(session?.user?.id, e.target.value)
+                  } else {
+                    setPreviewRole(e.target.value)
+                  }
+                }}
+                title={userRole === 'admin' ? 'Change your role' : 'Preview only — only an admin can change roles'}
                 className="bg-transparent text-blue-600 font-bold outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-none"
               >
                 <option value="admin">Admin (Employer)</option>
@@ -653,11 +686,11 @@ function Dashboard({ session }) {
         </header>
 
         <div className="flex-1 w-full max-w-full overflow-x-hidden">
-          {activeTab === 'inbox' && userRole !== 'client' && (
+          {activeTab === 'inbox' && viewRole !== 'client' && (
             <UnifiedInbox workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'tasks' && userRole !== 'client' && (
+          {activeTab === 'tasks' && viewRole !== 'client' && (
             <CompanyTasks
               tasks={tasks}
               teamMembers={teamMembers}
@@ -674,7 +707,7 @@ function Dashboard({ session }) {
             />
           )}
 
-          {activeTab === 'copilot' && userRole !== 'client' && (
+          {activeTab === 'copilot' && viewRole !== 'client' && (
             <AICopilot
               workspaceId={activeOrgId}
               currentUser={{ name: userEmail }}
@@ -682,31 +715,31 @@ function Dashboard({ session }) {
             />
           )}
 
-          {activeTab === 'matrix' && userRole !== 'client' && (
+          {activeTab === 'matrix' && viewRole !== 'client' && (
             <EisenhowerMatrix workspaceId={activeOrgId} />
           )}
 
-          {activeTab === 'okrs' && userRole !== 'client' && (
+          {activeTab === 'okrs' && viewRole !== 'client' && (
             <OKRsGoals workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'forms' && userRole !== 'client' && (
+          {activeTab === 'forms' && viewRole !== 'client' && (
             <FormsBuilder workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'helpdesk' && userRole !== 'client' && (
+          {activeTab === 'helpdesk' && viewRole !== 'client' && (
             <HelpdeskTickets workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'timetracking' && userRole !== 'client' && (
+          {activeTab === 'timetracking' && viewRole !== 'client' && (
             <TimeTracking workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'invoicing' && userRole !== 'client' && (
+          {activeTab === 'invoicing' && viewRole !== 'client' && (
             <InvoicingBilling workspaceId={activeOrgId} currentUser={{ name: userEmail }} />
           )}
 
-          {activeTab === 'docs' && userRole !== 'client' && (
+          {activeTab === 'docs' && viewRole !== 'client' && (
             <DocsWiki
               workspaceId={activeOrgId}
               currentUser={{
@@ -717,7 +750,7 @@ function Dashboard({ session }) {
             />
           )}
 
-          {activeTab === 'hr' && userRole !== 'client' && (
+          {activeTab === 'hr' && viewRole !== 'client' && (
             <HRManagement
               workspaceId={activeOrgId}
               userRole={userRole}
@@ -729,11 +762,11 @@ function Dashboard({ session }) {
             />
           )}
 
-          {activeTab === 'analytics' && userRole !== 'client' && (
+          {activeTab === 'analytics' && viewRole !== 'client' && (
             <AnalyticsDashboard workspaceId={activeOrgId} />
           )}
 
-          {activeTab === 'automations' && userRole !== 'client' && (
+          {activeTab === 'automations' && viewRole !== 'client' && (
             <WorkflowAutomation workspaceId={activeOrgId} />
           )}
 
@@ -743,11 +776,11 @@ function Dashboard({ session }) {
             </div>
           )}
 
-          {activeTab === 'contacts' && userRole !== 'client' && (
+          {activeTab === 'contacts' && viewRole !== 'client' && (
             <ContactsDirectory workspaceId={activeOrgId} />
           )}
 
-          {activeTab === 'chat' && userRole !== 'client' && (
+          {activeTab === 'chat' && viewRole !== 'client' && (
             <div className="p-4 sm:p-8">
               <TeamChat
                 workspaceId={activeOrgId}
@@ -760,7 +793,7 @@ function Dashboard({ session }) {
             </div>
           )}
 
-          {activeTab === 'team' && userRole !== 'client' && (
+          {activeTab === 'team' && viewRole !== 'client' && (
             <TeamRoles
               workspaceId={activeOrgId}
               currentUser={{
@@ -771,7 +804,7 @@ function Dashboard({ session }) {
             />
           )}
 
-          {userRole === 'client' && (
+          {viewRole === 'client' && (
             <ClientPortal workspaceName={activeOrg?.name} tasks={tasks} />
           )}
         </div>

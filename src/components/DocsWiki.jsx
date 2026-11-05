@@ -21,6 +21,7 @@ export default function DocsWiki({ workspaceId, currentUser }) {
     const [docs, setDocs] = useState([]);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,36 +53,15 @@ export default function DocsWiki({ workspaceId, currentUser }) {
                 .eq('workspace_id', workspaceId)
                 .order('updated_at', { ascending: false });
 
-            if (error && !error.message.includes('relation')) throw error;
-
-            const fallbackDocs = [
-                {
-                    id: 'doc-1',
-                    workspace_id: workspaceId,
-                    title: '🚀 Sales Onboarding & Closing Playbook',
-                    category: 'Sales SOPs',
-                    content: `### Sales Closing Playbook\n\n1. **Lead Discovery Call**: Always qualify BANT (Budget, Authority, Need, Timeline).\n2. **Demo Presentation**: Tailor value proposition to pain points recorded in Contacts Directory.\n3. **Proposal Submission**: Move deal stage to "Negotiation" in Deals Kanban.\n4. **Closing**: Send contract link via client portal.`,
-                    author_name: 'Sales Lead',
-                    tags: ['Sales', 'Playbook', 'SOP'],
-                    is_private: false,
-                    updated_at: new Date().toISOString()
-                },
-                {
-                    id: 'doc-2',
-                    workspace_id: workspaceId,
-                    title: '📘 Employee PTO & Remote Work Policy',
-                    category: 'HR Policies',
-                    content: `### Workplace PTO Guidelines\n\n* **Vacation Days**: 15 days paid vacation annually.\n* **Submission**: Log all time-off through the **HR & PTO** tab at least 3 days in advance.\n* **Sick Leave**: Notify your department head via Team Chat before 9 AM.`,
-                    author_name: 'HR Team',
-                    tags: ['HR', 'PTO', 'Policy'],
-                    is_private: false,
-                    updated_at: new Date().toISOString()
-                }
-            ];
-
-            const loadedDocs = data && data.length > 0 ? data : fallbackDocs;
-            setDocs(loadedDocs);
-            setSelectedDoc(loadedDocs[0]);
+            if (error) {
+                setFetchError(`Could not load documents: ${error.message}`);
+                setDocs([]);
+                setSelectedDoc(null);
+            } else {
+                setFetchError('');
+                setDocs(data || []);
+                setSelectedDoc(data && data.length > 0 ? data[0] : null);
+            }
         } catch (err) {
             console.error('Error fetching docs:', err.message);
         } finally {
@@ -256,6 +236,9 @@ export default function DocsWiki({ workspaceId, currentUser }) {
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full font-sans space-y-6">
+            {fetchError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-medium">{fetchError}</div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

@@ -114,26 +114,15 @@ export default function TeamChat({ workspaceId, currentUser }) {
         if (!id || id === 'undefined' || id === 'null') {
             id = localStorage.getItem('activeOrgId');
         }
-        if (!id || id === 'undefined' || id === 'null') {
-            const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
-            if (orgs && orgs.length > 0) {
-                id = orgs[0].id;
-            }
-        }
+        // No fallback to another organisation: if this workspace has no id,
+        // callers must handle null (empty state) instead of borrowing
+        // some other workspace's id.
         if (id && id !== 'undefined' && id !== 'null') {
             localStorage.setItem('activeOrgId', id);
             return id;
         }
         return null;
     };
-
-    if (currentUser?.role === 'client') {
-        return (
-            <div className="p-8 text-center text-slate-500 font-medium">
-                Team Chat is for internal staff members only.
-            </div>
-        );
-    }
 
     const triggerToast = (msg) => {
         setToast({ show: true, message: msg });
@@ -251,7 +240,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
             activeChannelSub = supabase.channel(channelTopic);
 
             activeChannelSub
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `workspace_id=eq.${targetId}` }, (payload) => {
                     fetchMessages();
                     if (activeThreadMsg) fetchThreadReplies(activeThreadMsg.id);
 
@@ -305,6 +294,16 @@ export default function TeamChat({ workspaceId, currentUser }) {
     useEffect(() => {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [threadReplies]);
+
+    // Client role renders the notice only AFTER all hooks above have run,
+    // so hook order never changes between renders.
+    if (currentUser?.role === 'client') {
+        return (
+            <div className="p-8 text-center text-slate-500 font-medium">
+                Team Chat is for internal staff members only.
+            </div>
+        );
+    }
 
     const execCmd = (e, command, value = null) => {
         if (e) e.preventDefault();
@@ -622,21 +621,18 @@ export default function TeamChat({ workspaceId, currentUser }) {
 
     const fetchMessages = async () => {
         const targetId = await getCleanWorkspaceId();
-
-        let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
-
-        if (targetId) {
-            query = query.eq('workspace_id', targetId);
+        if (!targetId) {
+            // No workspace resolved: show an empty chat, never fetch
+            // messages from every workspace.
+            setAllRawMessages([]);
+            return;
         }
 
-        let { data, error } = await query;
-
-        if ((!data || data.length === 0) && targetId) {
-            const fallback = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-            if (fallback.data && fallback.data.length > 0) {
-                data = fallback.data;
-            }
-        }
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('workspace_id', targetId)
+            .order('created_at', { ascending: true });
 
         if (error) {
             console.error('❌ Database error fetching messages:', error.message);

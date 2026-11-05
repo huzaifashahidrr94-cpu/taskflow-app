@@ -29,24 +29,16 @@ export default function AnalyticsDashboard({ workspaceId }) {
     const fetchAnalyticsData = async () => {
         setLoading(true);
         try {
-            const { data: dealData } = await supabase
-                .from('deals')
-                .select('*')
-                .eq('workspace_id', workspaceId);
-
-            const { data: taskData } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('organization_id', workspaceId);
-
-            const { data: memberData } = await supabase
-                .from('organization_members')
-                .select('*, profiles(full_name)')
-                .eq('organization_id', workspaceId);
-
-            setDeals(dealData || []);
-            setTasks(taskData || []);
-            setMembers(memberData || []);
+            // The three queries used to run one after another, which is
+            // most of the wait on this screen. Run them in parallel.
+            const [dealRes, taskRes, memberRes] = await Promise.all([
+                supabase.from('deals').select('*').eq('workspace_id', workspaceId),
+                supabase.from('tasks').select('*').eq('organization_id', workspaceId),
+                supabase.from('organization_members').select('*, profiles(full_name)').eq('organization_id', workspaceId)
+            ]);
+            setDeals(dealRes.data || []);
+            setTasks(taskRes.data || []);
+            setMembers(memberRes.data || []);
         } catch (err) {
             console.error('Error fetching analytics:', err.message);
         } finally {
@@ -76,7 +68,7 @@ export default function AnalyticsDashboard({ workspaceId }) {
         return (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-                <p className="text-xs font-semibold">Generating visual analytics report...</p>
+                <p className="text-xs font-semibold">Loading analytics...</p>
             </div>
         );
     }
@@ -118,10 +110,14 @@ export default function AnalyticsDashboard({ workspaceId }) {
                         </div>
                     </div>
                     <p className="text-3xl font-black">${totalRevenue.toLocaleString()}</p>
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-300 mt-2">
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                        <span>+14.2% vs last period</span>
-                    </div>
+                    {totalRevenue > 0 ? (
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-300 mt-2">
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                            <span>+14.2% vs last period</span>
+                        </div>
+                    ) : (
+                        <p className="text-[11px] text-blue-100 font-medium mt-2">No revenue yet — add a deal to see trends</p>
+                    )}
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
@@ -161,6 +157,14 @@ export default function AnalyticsDashboard({ workspaceId }) {
                     </div>
                 </div>
             </div>
+
+            {deals.length === 0 && tasks.length === 0 && (
+                <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs text-center">
+                    <BarChart3 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm font-bold text-slate-900">No data yet</p>
+                    <p className="text-xs text-slate-500 mt-1">Add a deal or a task and charts and trends will appear here.</p>
+                </div>
+            )}
         </div>
     );
 }
