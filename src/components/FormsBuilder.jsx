@@ -159,7 +159,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
     if (loading) {
         return (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
                 <p className="text-xs font-semibold">Loading Public Forms Builder...</p>
             </div>
         );
@@ -170,7 +170,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <FormInput className="w-6 h-6 text-indigo-600" /> Public Intake Forms
+                        <FormInput className="w-6 h-6 text-blue-600" /> Public Intake Forms
                     </h1>
                     <p className="text-slate-500 text-sm mt-0.5">
                         Build web forms to automatically convert client submissions into CRM Leads, Tasks, or Support Tickets.
@@ -179,7 +179,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
 
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-indigo-500/20"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-blue-500/20"
                 >
                     <Plus className="w-4 h-4" /> Create New Form
                 </button>
@@ -197,7 +197,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                                     className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-md uppercase ${f.target_type === 'lead'
                                             ? 'bg-blue-100 text-blue-800'
                                             : f.target_type === 'ticket'
-                                                ? 'bg-sky-100 text-sky-800'
+                                                ? 'bg-blue-100 text-blue-800'
                                                 : 'bg-emerald-100 text-emerald-800'
                                         }`}
                                 >
@@ -221,7 +221,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
 
                                 <button
                                     onClick={() => handleCopyLink(f.id)}
-                                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
                                 >
                                     {copiedId === f.id ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
                                     {copiedId === f.id ? 'Copied' : 'Share URL'}
@@ -244,7 +244,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl relative font-sans">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <FormInput className="w-5 h-5 text-indigo-600" /> Build Intake Form
+                                <FormInput className="w-5 h-5 text-blue-600" /> Build Intake Form
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
@@ -298,7 +298,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs flex-1 shadow-xs cursor-pointer"
+                                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex-1 shadow-xs cursor-pointer"
                                 >
                                     Publish Form
                                 </button>
@@ -312,7 +312,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-8 shadow-2xl relative font-sans space-y-6">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <span className="text-[10px] font-extrabold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">
+                            <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md uppercase">
                                 Public Form Live Preview
                             </span>
                             <button onClick={() => setPreviewForm(null)} className="text-slate-400 hover:text-slate-600">
@@ -364,7 +364,7 @@ export default function FormsBuilder({ workspaceId, currentUser }) {
 
                             <button
                                 type="submit"
-                                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-indigo-500/20"
+                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/20"
                             >
                                 <Send className="w-3.5 h-3.5" /> Submit Intake Form
                             </button>

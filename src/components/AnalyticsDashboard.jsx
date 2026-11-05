@@ -110,7 +110,7 @@ export default function AnalyticsDashboard({ workspaceId }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-5 rounded-3xl shadow-lg shadow-blue-500/15 relative overflow-hidden">
+                <div className="bg-blue-600 text-white p-5 rounded-3xl shadow-lg shadow-blue-500/15 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold uppercase tracking-wider text-blue-100">Closed Revenue</span>
                         <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
@@ -151,13 +151,13 @@ export default function AnalyticsDashboard({ workspaceId }) {
                 <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Task Completion</span>
-                        <div className="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
                     <p className="text-3xl font-extrabold text-slate-900">{taskCompletionRate}%</p>
                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${taskCompletionRate}%` }} />
+                        <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${taskCompletionRate}%` }} />
                     </div>
                 </div>
             </div>

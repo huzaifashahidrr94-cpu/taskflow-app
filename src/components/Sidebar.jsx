@@ -114,7 +114,7 @@ export default function Sidebar({
         {
             title: 'DAILY WORK',
             items: [
-                { id: 'inbox', label: 'Unified Inbox', icon: Inbox, badge: counts.inbox, badgeColor: 'bg-purple-600' },
+                { id: 'inbox', label: 'Unified Inbox', icon: Inbox, badge: counts.inbox, badgeColor: 'bg-blue-600' },
                 { id: 'tasks', label: 'Company Tasks', icon: LayoutGrid, badge: counts.tasks, badgeColor: 'bg-blue-600' },
                 { id: 'chat', label: 'Team Chat', icon: MessageSquare },
                 { id: 'copilot', label: 'AI Copilot', icon: Sparkles },
@@ -151,14 +151,14 @@ export default function Sidebar({
     ];
 
     return (
-        <aside className="w-64 flex flex-col h-screen overflow-y-auto shrink-0 bg-white/80 backdrop-blur-md border-r border-slate-200/80 p-4 font-sans select-none sticky top-0">
+        <aside className="w-64 flex flex-col h-screen overflow-y-auto shrink-0 bg-[#0F172A] border-r border-slate-800 p-4 font-sans select-none sticky top-0">
             <div>
-                {/* --- WORKGRID BRAND HEADER --- */}
+                {/* --- TASKFLOW BRAND HEADER --- */}
                 <div className="flex items-center gap-3 px-2 mb-6">
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center shadow-md shadow-blue-500/20">
                         <LayoutGrid className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-lg text-slate-900 tracking-tight">Workgrid</span>
+                    <span className="font-bold text-lg text-white tracking-tight">TaskFlow</span>
                 </div>
 
                 <nav className="space-y-5">
@@ -179,12 +179,12 @@ export default function Sidebar({
                                         key={item.id}
                                         onClick={() => setActiveTab(item.id)}
                                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${isActive
-                                            ? 'bg-blue-50 text-blue-600 font-bold'
-                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                                            ? 'bg-blue-600 text-white font-bold'
+                                            : 'text-slate-300 hover:text-white hover:bg-white/10'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2.5 truncate">
-                                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                                             <span className="truncate">{item.label}</span>
                                         </div>
 
@@ -201,24 +201,24 @@ export default function Sidebar({
                 </nav>
             </div>
 
-            <div className="space-y-2 mt-auto pt-6 border-t border-slate-100">
+            <div className="space-y-2 mt-auto pt-6 border-t border-white/10">
                 {userRole === 'admin' && (
                     <button
                         onClick={onOpenInvite}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 hover:bg-blue-100/80 text-xs font-bold transition cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold transition cursor-pointer"
                     >
                         <UserPlus className="w-4 h-4" />
                         Invite Teammate
                     </button>
                 )}
 
-                <div className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-2xl flex items-center justify-between">
+                <div className="p-2.5 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
                     <div className="flex items-center gap-2.5 overflow-hidden">
                         <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">
                             {userInitial}
                         </div>
                         <div className="text-xs truncate">
-                            <p className="font-semibold text-slate-900 truncate">{userEmail}</p>
+                            <p className="font-semibold text-white truncate">{userEmail}</p>
                             <p className="text-slate-500 capitalize text-[10px]">{userRole}</p>
                         </div>
                     </div>
@@ -226,7 +226,7 @@ export default function Sidebar({
 
                 <button
                     onClick={onSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-white/10 transition cursor-pointer"
                 >
                     <LogOut className="w-3.5 h-3.5" />
                     Sign Out

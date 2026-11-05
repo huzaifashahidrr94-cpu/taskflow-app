@@ -237,7 +237,7 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
                         const cleanLine = trimmed.replace(/^[\*\-]\s+/, '').replace(/^\d+\.\s+/, '');
                         return (
                             <div key={idx} className="flex items-start gap-2 ml-2 my-1 text-xs text-slate-700">
-                                <span className="text-purple-600 font-bold">•</span>
+                                <span className="text-blue-600 font-bold">•</span>
                                 <div className="flex-1">{parseInlineBold(cleanLine)}</div>
                             </div>
                         );
@@ -261,12 +261,12 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <Sparkles className="w-6 h-6 text-purple-600" /> Conversational AI Copilot
+                        <Sparkles className="w-6 h-6 text-blue-600" /> Conversational AI Copilot
                     </h1>
                     <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                         <span>User: <strong className="text-slate-800">{userName}</strong></span>
                         <span>•</span>
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-800 font-extrabold rounded-md uppercase">
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-extrabold rounded-md uppercase">
                             {userRole}
                         </span>
                     </div>
@@ -277,25 +277,25 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
                         onClick={() => setShowApiKeyInput(!showApiKeyInput)}
                         className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer border border-slate-200/80"
                     >
-                        <Key className="w-3.5 h-3.5 text-purple-600" /> {apiKey ? 'API Connected' : 'Connect Gemini API Key'}
+                        <Key className="w-3.5 h-3.5 text-blue-600" /> {apiKey ? 'API Connected' : 'Connect Gemini API Key'}
                     </button>
                 </div>
             </div>
 
             {/* API Key Drawer */}
             {showApiKeyInput && (
-                <div className="bg-purple-50 border border-purple-200 p-4 rounded-2xl flex items-center gap-3 text-xs">
-                    <Key className="w-4 h-4 text-purple-600 shrink-0" />
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl flex items-center gap-3 text-xs">
+                    <Key className="w-4 h-4 text-blue-600 shrink-0" />
                     <input
                         type="password"
                         placeholder="Paste Google Gemini API key (Free at aistudio.google.com)..."
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-xl text-slate-900 focus:outline-none"
+                        className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-xl text-slate-900 focus:outline-none"
                     />
                     <button
                         onClick={() => saveApiKey(apiKey)}
-                        className="px-4 py-2 bg-purple-600 text-white font-bold rounded-xl cursor-pointer hover:bg-purple-700 transition"
+                        className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl cursor-pointer hover:bg-blue-700 transition"
                     >
                         Save Key
                     </button>
@@ -306,15 +306,15 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold">
                 <button
                     onClick={() => handleSendMessage('Summarize my assigned tasks')}
-                    className="px-3 py-1.5 bg-white border border-slate-200/80 hover:border-purple-300 rounded-xl text-slate-700 shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-3 py-1.5 bg-white border border-slate-200/80 hover:border-blue-300 rounded-xl text-slate-700 shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
-                    <UserCheck className="w-3.5 h-3.5 text-purple-600" /> Summarize My Assigned Tasks
+                    <UserCheck className="w-3.5 h-3.5 text-blue-600" /> Summarize My Assigned Tasks
                 </button>
                 <button
                     onClick={() => handleSendMessage('Write a polite email asking a client for their business locations')}
-                    className="px-3 py-1.5 bg-white border border-slate-200/80 hover:border-purple-300 rounded-xl text-slate-700 shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-3 py-1.5 bg-white border border-slate-200/80 hover:border-blue-300 rounded-xl text-slate-700 shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
-                    <FileText className="w-3.5 h-3.5 text-purple-600" /> Draft Client Location Request
+                    <FileText className="w-3.5 h-3.5 text-blue-600" /> Draft Client Location Request
                 </button>
             </div>
 
@@ -327,14 +327,14 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
                             className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                             {msg.sender === 'bot' && (
-                                <div className="w-8 h-8 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
                                     <Bot className="w-4 h-4" />
                                 </div>
                             )}
 
                             <div
                                 className={`max-w-xl p-4 rounded-2xl text-xs ${msg.sender === 'user'
-                                    ? 'bg-purple-600 text-white font-medium rounded-tr-none'
+                                    ? 'bg-blue-600 text-white font-medium rounded-tr-none'
                                     : 'bg-slate-50 border border-slate-200/80 text-slate-800 rounded-tl-none whitespace-pre-wrap'
                                     }`}
                             >
@@ -351,7 +351,7 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
 
                     {loading && (
                         <div className="flex gap-3 items-center text-slate-400 text-xs font-semibold pl-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                             <span>Fetching personal tasks for {userName}...</span>
                         </div>
                     )}
@@ -365,12 +365,12 @@ LIVE PERSONAL DATA FOR ${userName.toUpperCase()}:
                         placeholder="Ask Copilot about your assigned tasks, or draft custom emails..."
                         value={inputPrompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                        className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                     <button
                         type="submit"
                         disabled={loading || !inputPrompt.trim()}
-                        className="absolute right-2 top-3.5 p-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-xl transition cursor-pointer"
+                        className="absolute right-2 top-3.5 p-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition cursor-pointer"
                     >
                         <Send className="w-4 h-4" />
                     </button>

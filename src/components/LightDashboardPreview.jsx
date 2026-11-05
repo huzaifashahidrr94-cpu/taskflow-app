@@ -69,7 +69,7 @@ export default function LightDashboardPreview() {
                     <div className="bg-white p-5 rounded-2xl border border-slate-200/70 shadow-sm shadow-slate-200/50">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Team Activity</span>
                         <p className="text-3xl font-extrabold text-slate-900 mt-2">98%</p>
-                        <span className="inline-block mt-3 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200/60">
+                        <span className="inline-block mt-3 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200/60">
                             All Systems Go
                         </span>
                     </div>

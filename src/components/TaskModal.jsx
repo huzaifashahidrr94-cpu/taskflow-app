@@ -55,7 +55,7 @@ export default function TaskModal({ isOpen, onClose, onCreateTask, teamMembers =
                             placeholder="e.g. Implement OAuth Flow"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20"
+                            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20"
                         />
                     </div>
 
@@ -120,7 +120,7 @@ export default function TaskModal({ isOpen, onClose, onCreateTask, teamMembers =
                             type="checkbox"
                             checked={isClientVisible}
                             onChange={(e) => setIsClientVisible(e.target.checked)}
-                            className="rounded border-zinc-300 text-indigo-600 focus:ring-0"
+                            className="rounded border-zinc-300 text-blue-600 focus:ring-0"
                         />
                         <span className="text-xs font-medium text-zinc-700">Make visible in Client Portal</span>
                     </label>
@@ -135,7 +135,7 @@ export default function TaskModal({ isOpen, onClose, onCreateTask, teamMembers =
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
                         >
                             Create Task
                         </button>

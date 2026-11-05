@@ -285,7 +285,7 @@ function AuthView() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-all shadow-md shadow-slate-900/10 disabled:opacity-70 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:opacity-70 flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {inviteOrgId ? "Join Workspace" : isSignUp ? "Create Workspace" : "Sign In"}
@@ -628,19 +628,19 @@ function Dashboard({ session }) {
             {userRole === 'admin' && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
-                className="hidden sm:flex bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] font-medium text-xs sm:text-[14px] px-3 sm:px-4 py-2 transition items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white rounded-[8px] font-medium text-xs sm:text-[14px] px-3 sm:px-4 py-2 transition items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5" /> Invite Member
               </button>
             )}
 
             <div className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-slate-100 border border-slate-200/60 text-xs shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span className="text-slate-500 font-medium hidden md:inline">Portal View:</span>
               <select
                 value={userRole || 'admin'}
                 onChange={(e) => updateMemberRole(session?.user?.id, e.target.value)}
-                className="bg-transparent text-indigo-600 font-bold outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-none"
+                className="bg-transparent text-blue-600 font-bold outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-none"
               >
                 <option value="admin">Admin (Employer)</option>
                 <option value="hr">HR Manager</option>
@@ -943,7 +943,7 @@ function NewTaskModal({ onClose, orgId, teamMembers = [], onSuccess }) {
               type="checkbox"
               checked={isClientVisible}
               onChange={e => setIsClientVisible(e.target.checked)}
-              className="rounded border-slate-300 text-indigo-600 focus:ring-0 cursor-pointer"
+              className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
             />
             <span className="text-xs font-medium text-slate-700">Make visible in Client Portal</span>
           </label>

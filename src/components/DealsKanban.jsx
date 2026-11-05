@@ -19,7 +19,7 @@ import {
 const STAGES = [
     { id: 'lead', name: 'Lead Qualified', color: 'border-[#4F46E5] text-[#4F46E5] bg-[#EEF2FF]' },
     { id: 'proposal', name: 'Proposal Sent', color: 'border-amber-400 text-amber-700 bg-amber-50' },
-    { id: 'negotiation', name: 'In Negotiation', color: 'border-violet-400 text-violet-700 bg-violet-50' },
+    { id: 'negotiation', name: 'In Negotiation', color: 'border-blue-400 text-blue-700 bg-blue-50' },
     { id: 'won', name: 'Closed Won', color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
     { id: 'lost', name: 'Closed Lost', color: 'border-rose-400 text-rose-700 bg-rose-50' }
 ];

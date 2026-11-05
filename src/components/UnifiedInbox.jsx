@@ -344,20 +344,20 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
     const getActivityIcon = (type) => {
         switch (type) {
             case 'mention':
-                return <MessageSquare className="w-4 h-4 text-purple-600" />;
+                return <MessageSquare className="w-4 h-4 text-blue-600" />;
             case 'deal':
                 return <TrendingUp className="w-4 h-4 text-emerald-600" />;
             case 'ticket':
-                return <Ticket className="w-4 h-4 text-sky-600" />;
+                return <Ticket className="w-4 h-4 text-blue-600" />;
             default:
-                return <Mail className="w-4 h-4 text-indigo-600" />;
+                return <Mail className="w-4 h-4 text-blue-600" />;
         }
     };
 
     if (loading) {
         return (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
                 <p className="text-xs font-semibold">Loading Unified Inbox...</p>
             </div>
         );
@@ -368,7 +368,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <Inbox className="w-6 h-6 text-indigo-600" /> Unified Activity Inbox
+                        <Inbox className="w-6 h-6 text-blue-600" /> Unified Activity Inbox
                     </h1>
                     <p className="text-slate-500 text-sm mt-0.5">
                         Single stream combining chat mentions, deal changes, tickets, and client emails.
@@ -380,7 +380,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                         onClick={markAllAsRead}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
                     >
-                        <CheckCheck className="w-4 h-4 text-indigo-600" /> Mark All Read
+                        <CheckCheck className="w-4 h-4 text-blue-600" /> Mark All Read
                     </button>
 
                     <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/80 text-xs font-bold">
@@ -420,7 +420,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                         markAsRead(act.id);
                                     }}
                                     className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${isSelected
-                                        ? 'bg-indigo-50/90 border-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
+                                        ? 'bg-blue-50/90 border-blue-300 shadow-xs ring-1 ring-blue-500/20'
                                         : isUnread
                                             ? 'bg-slate-900 border-slate-800 text-white shadow-md hover:bg-slate-800'
                                             : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-700'
@@ -432,12 +432,12 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 }`}>
                                                 {getActivityIcon(act.type)}
                                             </div>
-                                            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isUnread && !isSelected ? 'text-indigo-400' : 'text-slate-500'
+                                            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isUnread && !isSelected ? 'text-blue-400' : 'text-slate-500'
                                                 }`}>
                                                 {act.category}
                                             </span>
                                             {isUnread && (
-                                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" title="Unread Message" />
+                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" title="Unread Message" />
                                             )}
                                         </div>
 
@@ -466,11 +466,11 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                         <div className="space-y-6">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100">
+                                    <div className="p-2.5 rounded-2xl bg-blue-50 border border-blue-100">
                                         {getActivityIcon(selectedActivity.type)}
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider">
+                                        <span className="text-[10px] font-extrabold text-blue-700 uppercase tracking-wider">
                                             {selectedActivity.category}
                                         </span>
                                         <h3 className="text-base font-black text-slate-900">{selectedActivity.title}</h3>
@@ -480,7 +480,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                 {selectedActivity.archived ? (
                                     <button
                                         onClick={() => handleUnarchive(selectedActivity.id)}
-                                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
                                     >
                                         <RotateCcw className="w-3.5 h-3.5" /> Restore to Inbox
                                     </button>
@@ -510,14 +510,14 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                     Quick Reply / Note
                                 </label>
 
-                                <div className="border border-slate-200/90 rounded-2xl overflow-hidden bg-slate-50/50 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                                <div className="border border-slate-200/90 rounded-2xl overflow-hidden bg-slate-50/50 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all">
                                     {showFormatting && (
                                         <div className="px-3 py-1.5 bg-slate-100/70 border-b border-slate-200/70 flex items-center justify-between text-slate-500">
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.bold ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.bold ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Bold"
                                                 >
@@ -527,7 +527,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.italic ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.italic ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Italic"
                                                 >
@@ -537,7 +537,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('underline'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.underline ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.underline ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Underline"
                                                 >
@@ -547,7 +547,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('strikeThrough'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.strike ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.strike ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Strikethrough"
                                                 >
@@ -568,7 +568,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.ul ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.ul ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Bullet List"
                                                 >
@@ -578,7 +578,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                 <button
                                                     type="button"
                                                     onMouseDown={(e) => { e.preventDefault(); execCommand('insertOrderedList'); }}
-                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.ol ? 'bg-indigo-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
+                                                    className={`p-1.5 rounded-lg cursor-pointer transition ${activeFormats.ol ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                                                         }`}
                                                     title="Numbered List"
                                                 >
@@ -626,7 +626,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                                     className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs"
                                                 >
                                                     {file.type === 'image' ? (
-                                                        <ImageIcon className="w-3 h-3 text-indigo-500" />
+                                                        <ImageIcon className="w-3 h-3 text-blue-500" />
                                                     ) : file.type === 'audio' ? (
                                                         <Mic className="w-3 h-3 text-rose-500" />
                                                     ) : (
@@ -667,7 +667,7 @@ export default function UnifiedInbox({ workspaceId, currentUser }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowFormatting(!showFormatting)}
-                                                className={`p-1.5 rounded-lg text-slate-700 cursor-pointer transition ${showFormatting ? 'bg-indigo-100 text-indigo-700 font-bold' : 'hover:bg-slate-200/80'
+                                                className={`p-1.5 rounded-lg text-slate-700 cursor-pointer transition ${showFormatting ? 'bg-blue-100 text-blue-700 font-bold' : 'hover:bg-slate-200/80'
                                                     }`}
                                                 title="Toggle Text Formatting Bar"
                                             >

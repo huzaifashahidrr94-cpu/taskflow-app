@@ -94,8 +94,8 @@ export default function CompanyTasks({
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
                         Company Tasks
                         {!isAdmin && (
-                            <span className="text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded-full font-semibold uppercase tracking-[0.05em] flex items-center gap-1">
-                                <Lock className="w-3 h-3 text-indigo-600" /> Member View
+                            <span className="text-[11px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-semibold uppercase tracking-[0.05em] flex items-center gap-1">
+                                <Lock className="w-3 h-3 text-blue-600" /> Member View
                             </span>
                         )}
                     </h1>
@@ -113,7 +113,7 @@ export default function CompanyTasks({
                             <button
                                 onClick={() => setTaskFilter('all')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${taskFilter === 'all'
-                                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                     : 'bg-white text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
                                     }`}
                             >
@@ -122,7 +122,7 @@ export default function CompanyTasks({
                             <button
                                 onClick={() => setTaskFilter('my_tasks')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${taskFilter === 'my_tasks'
-                                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                     : 'bg-white text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
                                     }`}
                             >
@@ -136,7 +136,7 @@ export default function CompanyTasks({
                         <button
                             onClick={() => setViewMode('list')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${viewMode === 'list'
-                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                 : 'bg-white text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
                                 }`}
                         >
@@ -145,7 +145,7 @@ export default function CompanyTasks({
                         <button
                             onClick={() => setViewMode('kanban')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${viewMode === 'kanban'
-                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                 : 'bg-white text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
                                 }`}
                         >
@@ -156,7 +156,7 @@ export default function CompanyTasks({
                     {isAdmin && (
                         <button
                             onClick={onOpenModal}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-xs"
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-xs"
                         >
                             <Plus className="w-4 h-4" /> New Task
                         </button>
@@ -171,7 +171,7 @@ export default function CompanyTasks({
                         {isAdmin && taskFilter === 'all' ? 'Total Workspace Queue' : 'My Assigned Queue'}
                     </span>
                     <p className="text-3xl font-extrabold text-zinc-900 mt-2 tabular-nums">{filteredTasks.length}</p>
-                    <span className="inline-block mt-3 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2.5 py-0.5">
+                    <span className="inline-block mt-3 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2.5 py-0.5">
                         Real-time Sync
                     </span>
                 </div>
@@ -192,7 +192,7 @@ export default function CompanyTasks({
                     <p className="text-3xl font-extrabold text-zinc-900 mt-2 tabular-nums">
                         {filteredTasks.filter(t => t.is_client_visible).length}
                     </p>
-                    <span className="inline-block mt-3 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2.5 py-0.5">
+                    <span className="inline-block mt-3 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[11px] font-semibold uppercase tracking-[0.05em] px-2.5 py-0.5">
                         Synced to Portal
                     </span>
                 </div>
@@ -219,7 +219,7 @@ export default function CompanyTasks({
                                 {loading ? (
                                     <tr>
                                         <td colSpan={isAdmin ? 8 : 7} className="px-6 py-12 text-center text-zinc-500">
-                                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+                                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
                                             Loading tasks...
                                         </td>
                                     </tr>
@@ -258,7 +258,7 @@ export default function CompanyTasks({
                                                                 type="text"
                                                                 value={task.title}
                                                                 onChange={(e) => handleFieldUpdate(task.id, 'title', e.target.value)}
-                                                                className="bg-transparent border border-transparent hover:border-zinc-200 focus:border-indigo-600 rounded-md px-2 py-1 text-sm font-semibold text-zinc-900 focus:outline-hidden w-full transition"
+                                                                className="bg-transparent border border-transparent hover:border-zinc-200 focus:border-blue-600 rounded-md px-2 py-1 text-sm font-semibold text-zinc-900 focus:outline-hidden w-full transition"
                                                             />
                                                         ) : (
                                                             <span className="text-sm font-semibold text-zinc-900 px-2">{task.title}</span>
@@ -267,7 +267,7 @@ export default function CompanyTasks({
                                                             <div className="flex items-center gap-2 mt-1 px-2">
                                                                 <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                                                                     <div
-                                                                        className="h-full bg-indigo-600 transition-all duration-300"
+                                                                        className="h-full bg-blue-600 transition-all duration-300"
                                                                         style={{ width: `${progressPercent}%` }}
                                                                     />
                                                                 </div>
@@ -282,7 +282,7 @@ export default function CompanyTasks({
                                                         <select
                                                             value={task.status || 'todo'}
                                                             onChange={(e) => handleFieldUpdate(task.id, 'status', e.target.value)}
-                                                            className="bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-900 px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 cursor-pointer"
+                                                            className="bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-900 px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 cursor-pointer"
                                                         >
                                                             <option value="todo">TO DO</option>
                                                             <option value="in_progress">IN PROGRESS</option>
@@ -297,7 +297,7 @@ export default function CompanyTasks({
                                                                 onChange={(e) => handleFieldUpdate(task.id, 'priority', e.target.value)}
                                                                 className={`border rounded-lg text-xs font-bold px-2.5 py-1.5 focus:outline-hidden cursor-pointer ${task.priority === 'high' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                                                     task.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                                        'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                                        'bg-blue-50 text-blue-600 border-blue-200'
                                                                     }`}
                                                             >
                                                                 <option value="low">LOW</option>
@@ -307,7 +307,7 @@ export default function CompanyTasks({
                                                         ) : (
                                                             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${task.priority === 'high' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                                                 task.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                                    'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                                    'bg-blue-50 text-blue-600 border-blue-200'
                                                                 }`}>
                                                                 {(task.priority || 'LOW').toUpperCase()}
                                                             </span>
@@ -341,7 +341,7 @@ export default function CompanyTasks({
                                                                     placeholder="0"
                                                                     value={task.revenue_at_risk || ''}
                                                                     onChange={(e) => handleFieldUpdate(task.id, 'revenue_at_risk', Number(e.target.value))}
-                                                                    className="w-24 pl-6 pr-2 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-900 tabular-nums focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                                                                    className="w-24 pl-6 pr-2 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-900 tabular-nums focus:outline-hidden focus:ring-1 focus:ring-blue-600"
                                                                 />
                                                             </div>
                                                         ) : (
@@ -354,7 +354,7 @@ export default function CompanyTasks({
                                                             <button
                                                                 onClick={() => handleFieldUpdate(task.id, 'is_client_visible', !task.is_client_visible)}
                                                                 className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${task.is_client_visible
-                                                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                                    ? 'bg-blue-50 text-blue-600 border-blue-200'
                                                                     : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:text-zinc-900'
                                                                     }`}
                                                                 title="Toggle Client Portal Visibility"
@@ -386,7 +386,7 @@ export default function CompanyTasks({
                                                         <td colSpan={isAdmin ? 8 : 7} className="px-12 py-4 border-b border-zinc-200">
                                                             <div className="max-w-xl space-y-3">
                                                                 <h4 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.05em] flex items-center gap-1.5">
-                                                                    <CheckSquare className="w-3.5 h-3.5 text-indigo-600" /> Subtask Checklist
+                                                                    <CheckSquare className="w-3.5 h-3.5 text-blue-600" /> Subtask Checklist
                                                                 </h4>
 
                                                                 <div className="space-y-1.5">
@@ -397,7 +397,7 @@ export default function CompanyTasks({
                                                                                     type="checkbox"
                                                                                     checked={st.completed}
                                                                                     onChange={() => handleToggleSubtask(task.id, subtaskList, st.id)}
-                                                                                    className="rounded border-zinc-200 text-indigo-600 focus:ring-0 cursor-pointer"
+                                                                                    className="rounded border-zinc-200 text-blue-600 focus:ring-0 cursor-pointer"
                                                                                 />
                                                                                 <span className={st.completed ? 'line-through text-zinc-500' : 'text-zinc-900 font-medium'}>
                                                                                     {st.text}
@@ -420,11 +420,11 @@ export default function CompanyTasks({
                                                                         value={newSubtaskText}
                                                                         onChange={(e) => setNewSubtaskText(e.target.value)}
                                                                         onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask(task.id, subtaskList)}
-                                                                        className="flex-1 px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                                                                        className="flex-1 px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs text-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-blue-600"
                                                                     />
                                                                     <button
                                                                         onClick={() => handleAddSubtask(task.id, subtaskList)}
-                                                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs"
+                                                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs"
                                                                     >
                                                                         Add
                                                                     </button>
@@ -470,14 +470,14 @@ export default function CompanyTasks({
                                             <div className="flex items-start justify-between mb-2">
                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${task.priority === 'high' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                                     task.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                        'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                        'bg-blue-50 text-blue-600 border-blue-200'
                                                     }`}>
                                                     {(task.priority || 'LOW').toUpperCase()}
                                                 </span>
 
                                                 <div className="flex items-center gap-1">
                                                     {task.is_client_visible && (
-                                                        <Eye className="w-3.5 h-3.5 text-indigo-600" title="Visible in Client Portal" />
+                                                        <Eye className="w-3.5 h-3.5 text-blue-600" title="Visible in Client Portal" />
                                                     )}
                                                     {isAdmin && (
                                                         <button

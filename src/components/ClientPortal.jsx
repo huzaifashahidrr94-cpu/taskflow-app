@@ -4,7 +4,7 @@ export default function ClientPortal({ workspaceName, tasks = [] }) {
     return (
         <div className="p-8 max-w-5xl mx-auto">
             {/* Welcome Banner */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white mb-8 shadow-xl">
+            <div className="bg-blue-600 rounded-2xl p-6 text-white mb-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-2">
                     <Globe className="w-6 h-6" />
                     <h1 className="text-2xl font-bold">{workspaceName || 'Project'} Client Portal</h1>

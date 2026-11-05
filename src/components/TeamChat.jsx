@@ -1163,7 +1163,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                         });
                                     }
                                 }}
-                                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-indigo-200/80 shadow-2xs"
+                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer border border-blue-200/80 shadow-2xs"
                                 title="Enable OS Desktop Notifications"
                             >
                                 <BellRing className="w-3.5 h-3.5" /> Enable Desktop Popups
@@ -1619,7 +1619,7 @@ export default function TeamChat({ workspaceId, currentUser }) {
                                 <button
                                     type="button"
                                     onClick={handleSendMessage}
-                                    className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                                 >
                                     <span>Send</span>
                                     <Send className="w-3.5 h-3.5" />

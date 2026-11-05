@@ -57,7 +57,7 @@ export default function ToastContainer() {
                         <div className="flex items-center gap-2.5 min-w-0">
                             {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
                             {isError && <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />}
-                            {!isSuccess && !isError && <Info className="w-4 h-4 text-indigo-600 shrink-0" />}
+                            {!isSuccess && !isError && <Info className="w-4 h-4 text-blue-600 shrink-0" />}
                             <span className="truncate">{t.message}</span>
                         </div>
                         <button

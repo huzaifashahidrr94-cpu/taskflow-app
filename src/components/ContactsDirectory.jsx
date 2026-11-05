@@ -231,7 +231,7 @@ export default function ContactsDirectory({ workspaceId }) {
                                         {/* Status Badge */}
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-1 rounded-full font-bold border capitalize ${contact.status === 'customer' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                    contact.status === 'qualified' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                                                    contact.status === 'qualified' ? 'bg-blue-50 text-blue-600 border-blue-200' :
                                                         contact.status === 'contacted' ? 'bg-amber-50 text-amber-600 border-amber-200' :
                                                             contact.status === 'lost' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                                                 'bg-blue-50 text-blue-600 border-blue-200'

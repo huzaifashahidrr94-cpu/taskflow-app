@@ -162,7 +162,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
     if (loading) {
         return (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans">
-                <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
                 <p className="text-xs font-semibold">Loading Customer Support Desk...</p>
             </div>
         );
@@ -174,7 +174,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <Ticket className="w-6 h-6 text-sky-600" /> Helpdesk & Customer Support
+                        <Ticket className="w-6 h-6 text-blue-600" /> Helpdesk & Customer Support
                     </h1>
                     <p className="text-slate-500 text-sm mt-0.5">
                         Manage post-sale client inquiries, track SLA resolution times, and resolve tickets.
@@ -183,7 +183,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
 
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-sky-500/20"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-blue-500/20"
                 >
                     <Plus className="w-4 h-4" /> Log Support Ticket
                 </button>
@@ -194,9 +194,9 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                 <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
                     <div>
                         <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Active Open Tickets</p>
-                        <p className="text-2xl font-black text-sky-600 mt-1">{openTickets}</p>
+                        <p className="text-2xl font-black text-blue-600 mt-1">{openTickets}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                         <Clock className="w-5 h-5" />
                     </div>
                 </div>
@@ -231,7 +231,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                         placeholder="Search by client, ticket ID, or subject..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                 </div>
 
@@ -240,7 +240,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                         <button
                             key={st}
                             onClick={() => setFilterStatus(st)}
-                            className={`px-3 py-1.5 rounded-xl transition cursor-pointer capitalize flex-1 sm:flex-none ${filterStatus === st ? 'bg-white text-sky-700 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                            className={`px-3 py-1.5 rounded-xl transition cursor-pointer capitalize flex-1 sm:flex-none ${filterStatus === st ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
                                 }`}
                         >
                             {st.replace('_', ' ')}
@@ -301,7 +301,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                                                 className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${t.status === 'resolved'
                                                         ? 'bg-emerald-100 text-emerald-800'
                                                         : t.status === 'in_progress'
-                                                            ? 'bg-sky-100 text-sky-800'
+                                                            ? 'bg-blue-100 text-blue-800'
                                                             : 'bg-amber-100 text-amber-800'
                                                     }`}
                                             >
@@ -340,7 +340,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md p-6 shadow-2xl relative font-sans">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <Ticket className="w-5 h-5 text-sky-600" /> Log Support Ticket
+                                <Ticket className="w-5 h-5 text-blue-600" /> Log Support Ticket
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
@@ -421,7 +421,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl text-xs flex-1 shadow-xs cursor-pointer"
+                                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex-1 shadow-xs cursor-pointer"
                                 >
                                     Submit Ticket
                                 </button>
@@ -437,7 +437,7 @@ export default function HelpdeskTickets({ workspaceId, currentUser }) {
                     <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative font-sans space-y-4">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
-                                <span className="font-mono text-xs text-sky-600 font-bold">{selectedTicket.id}</span>
+                                <span className="font-mono text-xs text-blue-600 font-bold">{selectedTicket.id}</span>
                                 <h3 className="font-extrabold text-slate-900 text-base">{selectedTicket.subject}</h3>
                             </div>
                             <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-slate-600">
