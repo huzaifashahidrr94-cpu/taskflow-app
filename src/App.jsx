@@ -362,16 +362,18 @@ function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('inbox')
-  // Non-admin portal-view preview (local only, never written to the DB)
+  // Portal View is a PREVIEW only, for everyone including admins: it
+  // changes which sections/options you see, but never writes your real
+  // role to the database. Real role changes happen in Team & Workload.
+  // (The old code wrote the dropdown value straight to the DB, so an
+  // admin previewing another role accidentally demoted themself.)
   const [previewRole, setPreviewRole] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const activeOrg = organizations.find(o => o.id === activeOrgId)
   const userRole = activeOrg?.role || 'employee'
-  // Portal-view preview for non-admins: only changes which sections are
-  // visible (staff vs client). Admin-only buttons, invites and role
-  // props still use the real userRole above.
-  const viewRole = (userRole !== 'admin' && previewRole) ? previewRole : userRole
+  // Previewed role wins when set; otherwise the real role.
+  const viewRole = previewRole || userRole
   const userEmail = session?.user?.email?.split('@')[0] || 'User'
 
   // Global listener to switch tab to chat whenever a notification is clicked
@@ -534,35 +536,6 @@ function Dashboard({ session }) {
     }
   }
 
-  const updateMemberRole = async (userId, newRole) => {
-    const previousMembers = teamMembers
-    const previousOrgs = organizations
-    setTeamMembers(prev =>
-      prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m)
-    )
-
-    if (userId === session?.user?.id) {
-      setOrganizations(prev =>
-        prev.map(o => o.id === activeOrgId ? { ...o, role: newRole } : o)
-      )
-    }
-
-    try {
-      const { error } = await supabase
-        .from('organization_members')
-        .update({ role: newRole })
-        .eq('organization_id', activeOrgId)
-        .eq('user_id', userId)
-      if (error) throw error
-      toast.success(`Role updated to ${newRole}`)
-    } catch (err) {
-      setTeamMembers(previousMembers)
-      setOrganizations(previousOrgs)
-      console.error("Error updating role", err)
-      toast.error("Failed to update role — please try again")
-    }
-  }
-
   const handleSignOut = () => {
     toast.info("Signed out successfully")
     supabase.auth.signOut()
@@ -584,7 +557,7 @@ function Dashboard({ session }) {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           workspaceId={activeOrgId}
-          userRole={userRole}
+          userRole={viewRole}
           currentUser={{
             id: session?.user?.id,
             name: userEmail,
@@ -613,7 +586,7 @@ function Dashboard({ session }) {
             setIsMobileMenuOpen(false)
           }}
           workspaceId={activeOrgId}
-          userRole={userRole}
+          userRole={viewRole}
           currentUser={{
             id: session?.user?.id,
             name: userEmail,
@@ -663,16 +636,13 @@ function Dashboard({ session }) {
               <select
                 value={viewRole || 'employee'}
                 onChange={(e) => {
-                  // Only an admin may change roles in the database.
-                  // Anyone else just previews that portal view locally —
-                  // this must never promote a non-admin to admin.
-                  if (userRole === 'admin') {
-                    updateMemberRole(session?.user?.id, e.target.value)
-                  } else {
-                    setPreviewRole(e.target.value)
-                  }
+                  // Preview only — never writes to the database, so
+                  // previewing another role can never change (or demote)
+                  // your real role. Real role changes are done in
+                  // Team & Workload by an admin.
+                  setPreviewRole(e.target.value)
                 }}
-                title={userRole === 'admin' ? 'Change your role' : 'Preview only — only an admin can change roles'}
+                title="Preview the portal as this role — your real role stays unchanged"
                 className="bg-transparent text-blue-600 font-bold outline-none cursor-pointer text-xs max-w-[130px] sm:max-w-none"
               >
                 <option value="admin">Admin (Employer)</option>
@@ -770,7 +740,7 @@ function Dashboard({ session }) {
             <WorkflowAutomation workspaceId={activeOrgId} />
           )}
 
-          {(activeTab === 'sales' || activeTab === 'deals') && (userRole === 'admin' || userRole === 'sales') && (
+          {(activeTab === 'sales' || activeTab === 'deals') && (viewRole === 'admin' || viewRole === 'sales') && (
             <div className="p-4 sm:p-8">
               <DealsKanban workspaceId={activeOrgId} />
             </div>
